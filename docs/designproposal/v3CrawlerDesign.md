@@ -9,24 +9,31 @@ The objective of this project is to implement a web crawler capable of collectin
     * Older versions of the crawler design had a problem were they were only downloading the initial HTML returned by the server , this crawler renders pages using the Chrome DevTools Protocol(CDP). JS is executed before the page is processed.
 
 ## Architecture -
+* Crawler - 
 ```mermaid
-flowchart TD
-    Seed[Seed URL]
-    Norm1[URLNormalizer]
-    Check1[Duplicate Check]
-    Seen1[SeenStore]
-    Frontier1[Frontier / BFS Queue]
-    Render[BrowserRenderer]
-    Html[Rendered HTML]
-    Parser[HTMLParser]
-    Extract[Extracted URLs]
-    Norm2[URLNormalizer]
-    Seen2[SeenStore]
-    Frontier2[Frontier]
-    Store[SQLiteStorage]
+flowchart LR
 
-    Seed --> Norm1 --> Check1 --> Seen1 --> Frontier1 --> Render --> Html --> Parser --> Extract --> Norm2 --> Seen2 --> Frontier2 --> Render
-    Render --> Store
+Seed["Seed URL"]
+
+URLNormalizer
+
+SeenStore
+
+Frontier
+
+BrowserRenderer
+
+HTMLParser
+
+SQLiteStorage
+
+Seed --> URLNormalizer
+URLNormalizer --> SeenStore
+SeenStore --> Frontier
+Frontier --> BrowserRenderer
+BrowserRenderer --> HTMLParser
+BrowserRenderer --> SQLiteStorage
+HTMLParser --> URLNormalizer
 ```
 
 ## Design Decisions - 
