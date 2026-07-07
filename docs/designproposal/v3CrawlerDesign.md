@@ -9,31 +9,25 @@ The objective of this project is to implement a web crawler capable of collectin
     * Older versions of the crawler design had a problem were they were only downloading the initial HTML returned by the server , this crawler renders pages using the Chrome DevTools Protocol(CDP). JS is executed before the page is processed.
 
 ## Architecture -
-                                                            Seed URL
-                                                                │
-                                                        URLNormalizer
-                                                                │
-                                                        Duplicate Check
-                                                                │
-                                                        SeenStore
-                                                                │
-                                                        Frontier (BFS)
-                                                                │
-                                                        BrowserRenderer
-                                                                │
-                                                        Rendered HTML
-                                                                │
-                                                        HTMLParser
-                                                                │
-                                                    Extracted URLs
-                                                                │
-                                                        URLNormalizer
-                                                                │
-                                                        SeenStore
-                                                                │
-                                                        Frontier
-                                                                │
-                                                        SQLiteStorage
+```mermaid
+flowchart TD
+    Seed[Seed URL]
+    Norm1[URLNormalizer]
+    Check1[Duplicate Check]
+    Seen1[SeenStore]
+    Frontier1[Frontier / BFS Queue]
+    Render[BrowserRenderer]
+    Html[Rendered HTML]
+    Parser[HTMLParser]
+    Extract[Extracted URLs]
+    Norm2[URLNormalizer]
+    Seen2[SeenStore]
+    Frontier2[Frontier]
+    Store[SQLiteStorage]
+
+    Seed --> Norm1 --> Check1 --> Seen1 --> Frontier1 --> Render --> Html --> Parser --> Extract --> Norm2 --> Seen2 --> Frontier2 --> Render
+    Render --> Store
+```
 
 ## Design Decisions - 
 
@@ -49,7 +43,7 @@ The objective of this project is to implement a web crawler capable of collectin
 
 ## Components -
 ### 1. Queue -
-* Need - The queue is responsible for maintaing the order of Urls in the order they are discovered . It provides FIFO (first in first out) traversal required by the crawler's BFS strategy.
+* Role - The queue is responsible for maintaing the order of Urls in the order they are discovered . It provides FIFO (first in first out) traversal required by the crawler's BFS strategy.
 
 * Design - The queue is implemented using the CUSTOM SinglyList implemented in DS LIBRARY PROJECT. since a queue requires only enqueue from the rear and dequeue from the front, a singly linked list is suffiicient for this purporse which gives both operations in constant time O(1) also instead of exposing the linkedlist directly a seperate Queue is implemented to provide only queue operations to the crawler.
 
@@ -70,7 +64,39 @@ class Queue {
         void clear();
 };
 ```
-* Interal Representation - //diagram
+* Interal Representation -
+
+```mermaid
+flowchart LR
+
+Q["Queue<T>"]
+
+subgraph Internal["Internal Representation"]
+
+direction LR
+
+Head["Head"]
+
+N1["Node<T>"]
+
+N2["Node<T>"]
+
+N3["Node<T>"]
+
+Tail["Tail"]
+
+Head --> N1 --> N2 --> N3 --> Tail
+
+end
+
+Q --> Internal
+
+E["enqueue()"] --> Tail
+
+Head --> D["dequeue()"]
+
+F["front()"] -.returns.-> Head
+```
 
 * Time Complexity - 
     * enqueue - O(1)
@@ -83,7 +109,7 @@ class Queue {
 * A queue matches the BFS traversal used by the crawler whereas a dynamicarray would require shifting elements or implementing a circular queue while a doubly linked list would introduce additional overhead for maintaining previous pointers which is not required for FIFO operations .
 
 ### 2. URLDepth - 
-* Need - URLDepth is a data structure that stores a URL along with its depth every entry inside the frontier will be a URLDepth object.
+* Role - URLDepth is a data structure that stores a URL along with its depth every entry inside the frontier will be a URLDepth object.
 
 * Design - The URl and Depth are stored as a pair because they always travel together during crawling keeping them inside a single object prevents synchronization issues that could occure if seperate data structures were used .
 
@@ -95,12 +121,34 @@ struct URLDepth {
     int depth;
 };
 ```
-* Internal Representation - //diagram
+* Internal Representation -
+
+```mermaid
+flowchart LR
+
+Front["Front"]
+
+A["URL
+example.com
+Depth = 0"]
+
+B["URL
+example.com/about
+Depth = 1"]
+
+C["URL
+example.com/contact
+Depth = 1"]
+
+Rear["Rear"]
+
+Front --> A --> B --> C --> Rear
+```
 
 * Keeping both values together simplifies the frontier implementation and makes the interface cleaner by avoiding multiple parallel data structures.
 
 ### 3. Frontier - 
-* Need - The frontier is a queue that stores the URLs to be crawled next. It implements the BFS traversal strategy by processing URLs in the order they are discovered.
+* Role - The frontier is a queue that stores the URLs to be crawled next. It implements the BFS traversal strategy by processing URLs in the order they are discovered.
 
 * Design - The frontier is implemented using Queue<URLDepth> each queue entry stores both the URL and its depth.
 
@@ -119,14 +167,45 @@ class Frontier {
         void clear();
 };
 ```
-* Internal Representation - //diagram
+* Internal Representation -
+
+```mermaid
+flowchart LR
+
+subgraph Frontier["Frontier (Queue<URLDepth>)"]
+
+direction LR
+
+Front["Front"]
+
+A["URLDepth
+URL: example.com
+Depth: 0"]
+
+B["URLDepth
+URL: example.com/about
+Depth: 1"]
+
+C["URLDepth
+URL: example.com/contact
+Depth: 1"]
+
+Rear["Rear"]
+
+Front --> A --> B --> C --> Rear
+
+end
+
+Enq["enqueue()"] --> Rear
+Front --> Deq["dequeue()"]
+```
 
 * Time Complexity - Same as queue
 
 * Seperating Frontier from Queue keeps crawling logic independent from the linkedlist structure used to implement the queue. if the implementation has changes only the frontier needs to be updated.
 
 ### 4. SeenStore -
-* Need - SeenStore prevents duplicate crawling by maintaining the crawling state of every discovered URL.
+* Role - SeenStore prevents duplicate crawling by maintaining the crawling state of every discovered URL.
 
 * Design - SeenStore is implemented using a HashMap<string,URLState> where URLState is an enum that can have values DISCOVERED,CRAWLED,FAILED. every url becomes part of seenstore when it is first discovered even before its crawled. This allows the crawler to avoid re-discovering the same URL multiple times. The state of each URL is updated as it progresses through the crawling process.
 
@@ -152,7 +231,54 @@ Class SeenStore {
         int size()const;
 };
 ```
-* Internal Representation - //diagram
+* Internal Representation -
+
+```mermaid
+flowchart LR
+
+subgraph SeenStore
+
+direction TB
+
+HM["HashMap<string, URLState>"]
+
+end
+
+subgraph Internal
+
+direction TB
+
+B0["Bucket"]
+
+B1["Bucket"]
+
+B2["Bucket"]
+
+Dots["..."]
+
+Bn["Bucket"]
+
+end
+
+HM --> B0
+HM --> B1
+HM --> B2
+HM --> Dots
+HM --> Bn
+
+B0 --> D1["URL
+DISCOVERED"]
+
+B1 --> D2["URL
+CRAWLED"]
+
+Bn --> D3["URL
+FAILED"]
+
+SQLite["SQLiteStorage"]
+
+SQLite -. rebuild() .-> HM
+```
 
 * Time Complexity - 
     * contains - Avg - O(1), Worst - O(n)
@@ -166,7 +292,7 @@ Class SeenStore {
 * Checking only the Storage if the URL has been crawled would allow duplicate URLs to enter the frontier before they are stored. SeenStore performs duplicate detection immediately after URL extraction and before the URL is added to the frontier. This prevents duplicate URLs from entering the frontier and reduces unnecessary crawling.
 
 ### 5. PatternMatcher -
-* Need - PatternMatcher provides reusable pattern searching functionality used by HTMLParser to extract URLs from the rendered HTML in this project and by the indexer in the next project to extract keywords from the rendered HTML.
+* Role - PatternMatcher provides reusable pattern searching functionality used by HTMLParser to extract URLs from the rendered HTML in this project and by the indexer in the next project to extract keywords from the rendered HTML.
 
 * Design - PatternMatcher is implemented using the KnuthMorrisPratt (KMP) algorithm. The same implementation can be used to search for any pattern in a given text. The KMP algorithm is chosen because it has a linear time complexity O(n) .
 
@@ -176,7 +302,7 @@ Class SeenStore {
 class PatternMatcher {
     private:
         string pattern;
-        vector<int> lps; // longest prefix suffix
+        DynamicArray<int> lps; // longest prefix suffix
         void computeLPSArray();
     public:
         bool contains(const string& text) const;
@@ -184,7 +310,26 @@ class PatternMatcher {
         DynamicArray<int> findAll(const string& text) const;
 };
 ```
-* Internal Representation - //diagram
+* KMP Workflow -
+
+```mermaid
+flowchart LR
+
+Pattern["Pattern"]
+
+LPS["Build LPS Array"]
+
+Text["Input Text"]
+
+Search["KMP Search"]
+
+Matches["Match Index / Indices"]
+
+Pattern --> LPS
+LPS --> Search
+Text --> Search
+Search --> Matches
+```
 
 * Time Complexity - 
     * contains - O(n+m)
@@ -195,9 +340,9 @@ class PatternMatcher {
 * KMP is chosen over naive string matching because it avoids unnecessary comparisons by using information from previous matches. This makes it more efficient for large texts and patterns, which is common in web crawling scenarios.
 
 ### 6. BrowserRenderer -
-* Need - BrowserRenderer is responsible for rendering web pages using the Chrome DevTools Protocol (CDP) to obtain the final DOM after JavaScript execution.
+* Role - BrowserRenderer is responsible for rendering web pages using the Chrome DevTools Protocol (CDP) to obtain the final DOM after JavaScript execution.
 
-* A seperate Documentation is provided for the BrowserRenderer component in docs/designproposal/BrowserRendererDesign.md (not yet implemented) which provides a detailed design of the BrowserRenderer component.
+* A seperate Documentation is provided for the BrowserRenderer component in docs/designproposal/BrowserRendererDesign.md which provides a detailed design of the BrowserRenderer component.
 
 * Design - It has 4 major components - 
     1. ChromeProcess - Manages the lifecycle of the Chrome browser process, including starting and stopping the browser.
@@ -206,56 +351,54 @@ class PatternMatcher {
     4. CDPConnection - Provides a interface for sending commands to the Chrome DevTools Protocol and receiving events
 
 * Workflow - 
-                    Start Chrome
+```mermaid
+flowchart TD
 
-                    ↓
 
-                    HTTP GET /json/version
+ B[Start Chrome]
 
-                    ↓
+B --> C[HTTP GET /json/version]
 
-                    Get websocketDebuggerUrl
+C --> D[Retrieve webSocketDebuggerUrl]
 
-                    ↓
+D --> E[Connect WebSocket]
 
-                    Connect WebSocket
+E --> F[Create Browser Page]
 
-                    ↓
+F --> G[Enable Runtime Domain]
 
-                    Create Page
+G --> H[Enable Page Domain]
 
-                    ↓
+H --> I[Navigate to Target URL]
 
-                    Enable Runtime
+I --> J[Wait for Page.loadEventFired]
 
-                    ↓
+J --> K[Retrieve Rendered HTML]
 
-                    Enable Page
+K --> L[Build Response]
 
-                    ↓
+L --> M([Return Response])
+```
 
-                    Navigate
+* Rendering Workflow -
 
-                    ↓
+```mermaid
+flowchart LR
+    Chrome[ChromeProcess]
+    Http[HTTPClient]
+    Ws[WebSocketConnection]
+    Cdp[CDPConnection]
+    Renderer[BrowserRenderer]
 
-                    Wait for Page.loadEventFired
-
-                    ↓
-
-                    Get HTML
-
-                    ↓
-
-                    Return Response
-
-* Internal Representation - //diagram
+    Chrome --> Http --> Ws --> Cdp --> Renderer
+```
 
 * Time Complexity - The time complexity of BrowserRenderer is primarily dependent on the network latency and the time taken by the browser to render the page. The actual rendering process is handled by the Chrome browser which is optimized for performance.
 
 * CDP is used instead of a simple HTTP client because it allows the crawler to retrieve fully rendered, JavaScript-executed web pages, making it capable of crawling modern websites that cannot be accurately processed through HTTP requests alone
 
 ### 7. HTMLParser -
-* Need - HTMLParser is responsible for extracting URLs from the rendered HTML content of web pages. It could be used in future projects to extract keywords from the rendered HTML for indexing.
+* Role - HTMLParser is responsible for extracting URLs from the rendered HTML content of web pages. It could be used in future projects to extract keywords from the rendered HTML for indexing.
 
 * Design - HTMLParser uses the PatternMatcher component to search for anchor tags and extract the href attribute values. It also normalizes the extracted URLs using the URLNormalizer component before returning them.
 
@@ -270,7 +413,31 @@ class HTMLParser {
         string extractMetaDescription(const string& html) const;
 };
 ```
-* Internal Representation - //diagram
+* Internal Representation -
+
+```mermaid
+flowchart LR
+
+HTML["Rendered HTML"]
+
+Tags["Locate HTML Tags
+(a, img, link, script)"]
+
+Attrs["Extract Attributes
+(href, src)"]
+
+Normalize["Normalize URLs"]
+
+URLs["DynamicArray<string>"]
+
+HTML --> Tags
+Tags --> Attrs
+Attrs --> Normalize
+Normalize --> URLs
+
+PatternMatcher -. Used for searching .-> Tags
+URLNormalizer -. Standardizes URLs .-> Normalize
+```
 
 * Time Complexity - The time complexity of HTMLParser is O(n) where n is the length of the rendered HTML content. The extraction process involves scanning through the HTML content to find anchor tags and extract URLs, which can be done in linear time.
 
@@ -278,7 +445,7 @@ class HTMLParser {
 
 ### 8. URLNormalizer -
 
-* Need - URlNormalizer is responsible for normalizing URLs to a standard format before they are stored in the SeenStore or added to the Frontier. This ensures that different representations of the same URL are treated as duplicates.
+* Role - URlNormalizer is responsible for normalizing URLs to a standard format before they are stored in the SeenStore or added to the Frontier. This ensures that different representations of the same URL are treated as duplicates.
 
 * Design - Every extracted URL passed through the normalizer before duplicate detection , The process consists of - 
     * Resolving relative URLs to absolute URLs based on the base URL of the page.
@@ -297,13 +464,44 @@ class URLNormalizer {
 };
 ```
 
-* Internal Representation - //diagram
+* Internal Representation -
+
+```mermaid
+flowchart LR
+
+URL["Input URL"]
+
+subgraph URLNormalizer
+
+direction LR
+
+R["Resolve Relative"]
+
+H["Lowercase Host"]
+
+F["Remove Fragment"]
+
+S["Normalize Slash"]
+
+V["Validate Protocol"]
+
+end
+
+Output["Standard URL"]
+
+URL --> R
+R --> H
+H --> F
+F --> S
+S --> V
+V --> Output
+```
 
 * Time Complexity - The time complexity of URLNormalizer is O(n) where n is the length of the URL being normalized. The normalization process involves string manipulations and checks that can be performed in linear time.
 
 
 ### 9. Storage -
-* Need - Storage is responsible for storing the rendered HTML content of crawled web pages in a SQLite database. This allows the indexer in the next project to access the stored content for indexing and searching.
+* Role - Storage is responsible for storing the rendered HTML content of crawled web pages in a SQLite database. This allows the indexer in the next project to access the stored content for indexing and searching.
 
 * Design - Each succesfully rendered page is stored immediately after rendering in the SQLite database. The crawler stores the rendered HTML without modifying it , allowing indexer to process the original content again without revisiting the website
 
@@ -318,14 +516,46 @@ class Storage {
         int pagecount()const;
 };
 ```
-* Internal Representation - //diagram
+* Internal Representation -
+
+```mermaid
+erDiagram
+
+PAGES {
+    INTEGER id PK
+    TEXT url UK
+    INTEGER status_code
+    INTEGER depth
+    TEXT html
+    DATETIME crawl_time
+}
+```
+
+* SQLite Table Structure -
+
+```sql
+CREATE TABLE pages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT NOT NULL UNIQUE,
+    depth INTEGER NOT NULL,
+    html TEXT NOT NULL
+);
+
+CREATE INDEX idx_pages_depth ON pages(depth);
+```
+
+* Table Meaning -
+    * id - Unique identifier for each stored page.
+    * url - Final normalized URL of the crawled page.
+    * depth - Crawl depth from the seed URL.
+    * html - Fully rendered HTML returned by BrowserRenderer.
 
 * Time Complexity - The time complexity of Storage operations is primarily dependent on the underlying SQLite database operations. In general, the average time complexity for storing and retrieving pages is O(log n) due to the indexing and searching capabilities of SQLite.
 
 * SQLite provides structured storage , fast lookup , persistent restart and direct compatibility with the indexer it also remove the need to manage multiple text files manually.
 
 ### 10. Crawler -
-* Need - Crawler is the main component that handles the crawling process. It manages the flow of URLs through the various components, ensuring that pages are rendered, parsed, and stored correctly.
+* Role - Crawler is the main component that handles the crawling process. It manages the flow of URLs through the various components, ensuring that pages are rendered, parsed, and stored correctly.
 
 * Design - The crawler does not perform rendering , parsing , storage , normalization or duplicate detection itself , it delegates each task to the appropriate component while maintaining the overall crawl workflow.
 
@@ -349,7 +579,40 @@ class Crawler {
         void stop();
 };
 ```
-* Internal Representation - //diagram
+
+* Workflow of the Crawler -
+
+```mermaid
+flowchart LR
+
+Crawler["Crawler"]
+
+Normalizer["URLNormalizer"]
+
+Seen["SeenStore"]
+
+Frontier["Frontier"]
+
+Renderer["BrowserRenderer"]
+
+Storage["SQLiteStorage"]
+
+Parser["HTMLParser"]
+
+Crawler --> Normalizer
+
+Normalizer --> Seen
+
+Seen --> Frontier
+
+Frontier --> Renderer
+
+Renderer --> Storage
+
+Renderer --> Parser
+
+Parser --> Normalizer
+```
 
 * Time Complexity - The overall time complexity of the Crawler is dependent on the number of pages crawled, the depth of the crawl, and the efficiency of each component. The crawler's performance is influenced by network latency, rendering time, and database operations.
 
@@ -358,17 +621,79 @@ class Crawler {
 * The crawler can be extended to support multi-threading in future versions to improve performance and scalability.
 
 ## Workflow -
+```mermaid
+flowchart TD
+
+Start([Seed URL])
+
+Start --> A[Normalize URL]
+
+A --> B{Valid Protocol?}
+
+B -- No --> X1[Discard URL]
+
+B -- Yes --> C{Already in SeenStore?}
+
+C -- Yes --> X2[Skip Duplicate]
+
+C -- No --> D[Add URL as DISCOVERED]
+
+D --> E[Enqueue in Frontier]
+
+E --> F{Frontier Empty?}
+
+F -- Yes --> End([Crawling Complete])
+
+F -- No --> G[Dequeue Next URL]
+
+G --> H{Depth > Max Depth?}
+
+H -- Yes --> E
+
+H -- No --> I[BrowserRenderer.render]
+
+I --> J{Rendering Successful?}
+
+J -- No --> K[Mark URL as FAILED]
+
+K --> E
+
+J -- Yes --> L[Store Rendered HTML in SQLite]
+
+L --> M[Update URL State to CRAWLED]
+
+M --> N[HTMLParser.extractURLs]
+
+N --> O{More Links?}
+
+O -- No --> E
+
+O -- Yes --> P[Normalize Extracted URL]
+
+P --> Q{Valid Protocol?}
+
+Q -- No --> O
+
+Q -- Yes --> R{Already in SeenStore?}
+
+R -- Yes --> O
+
+R -- No --> S[Mark as DISCOVERED]
+
+S --> T[Enqueue into Frontier]
+
+T --> O
+```
+
 1. The crawler starts with a seed URL and normalizes it using the URLNormalizer.
 2. The normalized URL is checked against the SeenStore to determine if it has already been discovered or crawled.
-3. If the URL is new, it is added to the SeenStore  and marked as DISCOVERED, and then enqueued into the Frontier for crawling.
+3. If the URL is new, it is added to the SeenStore and marked as DISCOVERED, and then enqueued into the Frontier for crawling.
 4. The crawler dequeues a URL from the Frontier and passes it to the BrowserRenderer for rendering.
 5. The BrowserRenderer uses the Chrome DevTools Protocol to render the page and obtain the final DOM after JavaScript execution.
 6. The rendered HTML is stored in the SQLite database using the Storage component.
 7. The HTMLParser extracts URLs from the rendered HTML and normalizes them using the URLNormalizer.
 8. Each extracted URL is checked against the SeenStore to avoid duplicates. New URLs are added to the SeenStore and enqueued into the Frontier for further crawling.
-9. The process continues until the Frontier is empty or a specified maximum depth is reached.  
-
-//Comp interaction diagram
+9. The process continues until the Frontier is empty or a specified maximum depth is reached.
 
 ## Failure Handling
 * The crawler handles common failures without stopping crawling invalid pages are skipped and the crawler continues with the remaining URLs in the frontier
