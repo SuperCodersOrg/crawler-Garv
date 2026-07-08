@@ -1,7 +1,7 @@
 # Browser Renderer Design -
 This component implements the browser rendering layer used by the crawler to collect the final HTML of modern web pages after JavaScript execution. Starting from a page URL the browser renderer starts Chrome connects to the Chrome DevTools Protocol (CDP) creates a page navigates to the required URL waits for the page load event and returns the fully rendered HTML.
 
-It is designed to work as a reusable low level module inside the crawler pipeline so the crawler can render pages before parsing them for links and storing them in SQLite.
+It is designed to work as a reusable low level module inside the crawler pipeline so the crawler can render pages before parsing them for links and storing them in MySQL.
 
 ## Design Decisions -
 
@@ -233,7 +233,7 @@ Return Response
 ## Usage in the Crawl Project -
 
 * The crawler uses BrowserRenderer after a URL has been normalized checked against SeenStore and dequeued from the Frontier.
-* Once the renderer returns the final HTML the crawler stores that HTML in SQLite through Storage.
+* Once the renderer returns the final HTML the crawler stores that HTML in MySQL through Storage.
 * The crawler then passes the rendered HTML to HTMLParser so new links can be extracted and normalized.
 * Those extracted links are added back into SeenStore and Frontier if they have not been discovered before.
 * This means the browser renderer sits between Frontier processing and HTML parsing inside the overall crawl loop.
@@ -247,7 +247,7 @@ Return Response
 5. BrowserRenderer starts Chrome if needed connects to the local debugging endpoint and creates a CDP session.
 6. The page is navigated to the requested URL and the renderer waits for the load event.
 7. The final HTML is read from the DOM and returned to the crawler.
-8. Storage saves the rendered HTML into SQLite for later indexing.
+8. Storage saves the rendered HTML into MySQL for later indexing.
 9. HTMLParser extracts outgoing links from the rendered HTML.
 10. Each extracted link is normalized checked against SeenStore and if new added back to the Frontier.
 11. The process continues until the Frontier becomes empty or the maximum crawl depth is reached.

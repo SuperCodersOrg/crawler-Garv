@@ -1,10 +1,10 @@
 # Crawler Design - Version 3
-The objective of this project is to implement a web crawler capable of collecting web pages from the internet for use by a search engine . Starting from a seed URL the crawler visits pages , extracts hyperlinks , discovers new pages and stores the rendered HTML in a SQLite database .
+The objective of this project is to implement a web crawler capable of collecting web pages from the internet for use by a search engine . Starting from a seed URL the crawler visits pages , extracts hyperlinks , discovers new pages and stores the rendered HTML in a MySQL database .
 
 - Crawl web pages using BFS(Queue)
 - Avoid duplicate crawling
 - Supports modern JS websites that load their content through APIs and JavaScript.
-- Store rendered HTML in a SQLite database for use by the indexer.
+- Store rendered HTML in a MySQL database for use by the indexer.
 - Problems in the older versions - 
     * Older versions of the crawler design had a problem were they were only downloading the initial HTML returned by the server , this crawler renders pages using the Chrome DevTools Protocol(CDP). JS is executed before the page is processed.
 
@@ -26,7 +26,7 @@ HTMLParser
 
 URLNormalizer
 
-SQLiteStorage
+MySQLStorage
 
 end
 
@@ -34,7 +34,7 @@ Frontier --> BrowserRenderer
 
 BrowserRenderer --> HTMLParser
 
-BrowserRenderer --> SQLiteStorage
+BrowserRenderer --> MySQLStorage
 
 HTMLParser --> URLNormalizer
 
@@ -76,7 +76,7 @@ Crawler/
 
 * Browser Rendering - Chrome DevTools Protocol is used instead of a traditional HTTP client because many websites generate content after JavaScript execution. Rendering the page inside Chrome allows the crawler to obtain the final DOM instead of only the initial HTML.
 
-* Storage - SQLite is used instead of text files because it provides structured storage, efficient lookup, easier recovery after restart, and direct integration with the Indexer.
+* Storage - MySQL is used instead of text files because it provides structured storage, efficient lookup, easier recovery after restart, and direct integration with the Indexer.
 
 * Duplicate Detection - Handled by a Hashmap SeenStore that keeps track of already crawled URLs. This prevents the crawler from visiting the same URL multiple times .
 
@@ -281,85 +281,14 @@ Class SeenStore {
         void add(const string&, URLState);
         URLState getState(const string&)const;
         void updateState(const string&, URLState);
-        void rebuild(SQLiteStorage&);//executed on startup to rebuild the seenstore from the SQLite database
+        void rebuild(MySQLStorage&);//executed on startup to rebuild the seenstore from the MySQL database
         void clear();
         int size()const;
 };
 ```
 * Internal Representation -
 
-```mermaid
-flowchart LR
-
-subgraph Stack
-
-Seen["SeenStore"]
-
-HM["HashMap
-
-buckets*
-capacity
-size"]
-
-Seen --> HM
-
-end
-
-subgraph Heap
-
-direction TB
-
-subgraph BucketArray["Bucket Array"]
-
-direction LR
-
-B0["Bucket 0"]
-
-B1["Bucket 1"]
-
-B2["Bucket 2"]
-
-B3["Bucket n"]
-
-end
-
-subgraph Chains["Collision Chains"]
-
-direction TB
-
-N1["Node
-
-URL
-DISCOVERED"]
-
-N2["Node
-
-URL
-CRAWLED"]
-
-N3["Node
-
-URL
-FAILED"]
-
-end
-
-end
-
-HM -->|buckets| B0
-HM --> B1
-HM --> B2
-HM --> B3
-
-B0 --> N1
-N1 --> N2
-
-B2 --> N3
-
-SQLite["SQLiteStorage"]
-
-SQLite -. rebuild() .-> Seen
-```
+![Seenstore.png](Seenstore.png)
 
 * Time Complexity - 
     * contains - Avg - O(1), Worst - O(n)
@@ -582,9 +511,9 @@ V --> Output
 
 
 ### 9. Storage -
-* Role - Storage is responsible for storing the rendered HTML content of crawled web pages in a SQLite database. This allows the indexer in the next project to access the stored content for indexing and searching.
+* Role - Storage is responsible for storing the rendered HTML content of crawled web pages in a MySQL database. This allows the indexer in the next project to access the stored content for indexing and searching.
 
-* Design - Each succesfully rendered page is stored immediately after rendering in the SQLite database. The crawler stores the rendered HTML without modifying it , allowing indexer to process the original content again without revisiting the website
+* Design - Each succesfully rendered page is stored immediately after rendering in the MySQL database. The crawler stores the rendered HTML without modifying it , allowing indexer to process the original content again without revisiting the website
 
 * Public APIs/Structure - 
 ```cpp
@@ -603,23 +532,25 @@ class Storage {
 erDiagram
 
 PAGES {
-    INTEGER id PK
-    TEXT url UK
-    INTEGER status_code
-    INTEGER depth
-    TEXT html
-    DATETIME crawl_time
+    INT id PK
+    VARCHAR url UK
+    INT status_code
+    INT depth
+    LONGTEXT html
+    TIMESTAMP crawl_time
 }
 ```
 
-* SQLite Table Structure -
+* MySQL Table Structure -
 
 ```sql
 CREATE TABLE pages (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT NOT NULL UNIQUE,
-    depth INTEGER NOT NULL,
-    html TEXT NOT NULL
+    id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    url VARCHAR(2048) NOT NULL UNIQUE,
+    status_code INT NULL,
+    depth INT NOT NULL,
+    html LONGTEXT NOT NULL,
+    crawl_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX idx_pages_depth ON pages(depth);
@@ -629,11 +560,13 @@ CREATE INDEX idx_pages_depth ON pages(depth);
     * id - Unique identifier for each stored page.
     * url - Final normalized URL of the crawled page.
     * depth - Crawl depth from the seed URL.
-    * html - Fully rendered HTML returned by BrowserRenderer.
+    * html - Fully rendered HTML returned by BrowserRenderer. It is stored in a LONGTEXT column so large pages can be saved without truncation.
 
-* Time Complexity - The time complexity of Storage operations is primarily dependent on the underlying SQLite database operations. In general, the average time complexity for storing and retrieving pages is O(log n) due to the indexing and searching capabilities of SQLite.
+* Large HTML Handling - If a rendered page is extremely large, the storage layer can optionally compress the HTML before inserting it and decompress it when reading it back. The default design still keeps the full rendered source in MySQL so the indexer can reuse the exact page content.
 
-* SQLite provides structured storage , fast lookup , persistent restart and direct compatibility with the indexer it also remove the need to manage multiple text files manually.
+* Time Complexity - The time complexity of Storage operations is primarily dependent on the underlying MySQL database operations. In general, the average time complexity for storing and retrieving pages is O(log n) due to the indexing and searching capabilities of MySQL.
+
+* MySQL provides structured storage , fast lookup , persistent restart and direct compatibility with the indexer it also remove the need to manage multiple text files manually.
 
 ### 10. Crawler -
 * Role - Crawler is the main component that handles the crawling process. It manages the flow of URLs through the various components, ensuring that pages are rendered, parsed, and stored correctly.
@@ -676,7 +609,7 @@ Frontier["Frontier"]
 
 Renderer["BrowserRenderer"]
 
-Storage["SQLiteStorage"]
+Storage["MySQLStorage"]
 
 Parser["HTMLParser"]
 
@@ -739,7 +672,7 @@ J -- No --> K[Mark URL as FAILED]
 
 K --> E
 
-J -- Yes --> L[Store Rendered HTML in SQLite]
+J -- Yes --> L[Store Rendered HTML in MySQL]
 
 L --> M[Update URL State to CRAWLED]
 
@@ -771,7 +704,7 @@ T --> O
 3. If the URL is new, it is added to the SeenStore and marked as DISCOVERED, and then enqueued into the Frontier for crawling.
 4. The crawler dequeues a URL from the Frontier and passes it to the BrowserRenderer for rendering.
 5. The BrowserRenderer uses the Chrome DevTools Protocol to render the page and obtain the final DOM after JavaScript execution.
-6. The rendered HTML is stored in the SQLite database using the Storage component.
+6. The rendered HTML is stored in the MySQL database using the Storage component.
 7. The HTMLParser extracts URLs from the rendered HTML and normalizes them using the URLNormalizer.
 8. Each extracted URL is checked against the SeenStore to avoid duplicates. New URLs are added to the SeenStore and enqueued into the Frontier for further crawling.
 9. The process continues until the Frontier is empty or a specified maximum depth is reached.
@@ -792,7 +725,7 @@ T --> O
 
 * The Indexer will:
 
-    * Read rendered HTML directly from SQLiteStorage.
+    * Read rendered HTML directly from MySQLStorage.
     * Use HTMLParser to extract page titles, visible text, and metadata.
     * Build an inverted index from the extracted content.
     * Avoid downloading pages again because the rendered HTML is already available in the database.
@@ -810,5 +743,5 @@ T --> O
 | HTMLParser      | Link Extraction   | O(n)                                        |
 | URLNormalizer   | Normalize URL     | O(n)                                        |
 | BrowserRenderer | Render Page       | Depends on network and page rendering       |
-| SQLiteStorage   | Store / Retrieve  | Depends on indexed database operations      |
+| MySQLStorage    | Store / Retrieve  | Depends on indexed database operations      |
 | Crawler         | Complete Crawl    | Depends on pages crawled and rendering time |

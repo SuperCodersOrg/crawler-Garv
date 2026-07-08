@@ -1,3 +1,7 @@
+#include <gtest/gtest.h>
+#include "URLParser.h"
+#include "ParsedURL.h"
+
 TEST(URLParserTest, InvalidScheme)
 {
     URLParser parser;
