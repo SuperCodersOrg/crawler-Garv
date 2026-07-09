@@ -1,76 +1,207 @@
 #include "parser/URLNormalizer.h"
-#include <curl/curl.h>
 #include <string>
+#include "parser/NormalizedURL.h"
+#include "parser/ParsedURL.h"
+#include "DynamicArray.h"
 
-std::string URLNormalizer::resolveRelative(const std::string& url,const std::string& baseurl)const
+NormalizedURL URLNormalizer::normalize(const ParsedURL& parsed)const
 {
+    NormalizedURL url;
+    url.scheme = parsed.scheme;
+    url.credentials = parsed.credentials;
+    url.host = parsed.host;
+    url.port = parsed.port;
+    url.path = parsed.path;
+    url.query = parsed.query;
+    url.hasport = parsed.hasport;
+
+    finalnormalize(url);
+    return url;
 }
-std::string URLNormalizer::lowercastHost(const std::string& url)const{}
-std::string URLNormalizer::removeFragment(const std::string& url)const{}
-std::string URLNormalizer::normalizeTraliningSlash(const std::string& url)const{}
-std::string URLNormalizer::normalize(const std::string& url,const std::string& baseurl)const
+
+void URLNormalizer::lowercaseScheme(NormalizedURL& url)const{
+    for(char& c:url.scheme)c=std::tolower(static_cast<unsigned char>(c));
+}
+
+void URLNormalizer::lowercaseHost(NormalizedURL& url)const{
+    for(char& c:url.host)c=std::tolower(static_cast<unsigned char>(c));
+}
+
+void URLNormalizer::removedefaultport(NormalizedURL& url)const{
+    if(!url.hasport)return;
+    if(url.scheme == "http" && url.port == "80")
+    {
+        url.port.clear();
+        url.hasport = false;
+    }
+    else if(url.scheme=="https" && url.port == "443")
+    {
+        url.port.clear();
+        url.hasport=false;
+    }
+} 
+
+void URLNormalizer::normalizepath(NormalizedURL& url)const
 {
-    CURLU* handle = curl_url();
-    if(handle==nullptr)return url;
-    if(curl_url_set(handle,CURLUPART_URL,url.c_str(),0)!=CURLUE_OK)
+    if(url.path.empty())
     {
-        curl_url_cleanup(handle);
+        url.path="/";
+        return;
+    }
+    DynamicArray<std::string> segments;
+    size_t s=0;
+    if(url.path[0]=='/')s=1;
+    for(size_t e = s;e<=url.path.length();e++)
+    {
+        if(e == url.path.length() || url.path[e]=='/')
+        {
+            std::string segment = url.path.substr(s,e-s);
+            if(segment.empty())
+            {
+                s=e+1;
+                continue;
+            }
+            else if(segment == ".")
+            {
+                s=e+1;
+                continue;
+            }
+            else if(segment == "..")
+            {
+                if(!segments.isEmpty())segments.popback();
+            }
+            else{
+                segments.append(segment);
+            }
+            s=e+1;
+        }
+    }
+    url.path.clear();
+    if(segments.isEmpty())
+    {
+        url.path="/";
+        return;
+    }
+    for(int i=0;i<segments.size();i++)
+    {
+        url.path+="/"; 
+        url.path+=segments[i];
+    }
+}
+
+void URLNormalizer::removetrailingdot(NormalizedURL& url)const
+{
+    if(!url.host.empty()&&url.host.back()=='.')url.host.pop_back();
+}
+
+std::string URLNormalizer::dirof(const std::string& path)const
+{
+    if(path.empty()||path=="/")
+    {
+        return "/";
+    }
+    size_t slash = path.find_last_of('/');
+    if(slash == std::string::npos)
+        return "/";
+
+    return path.substr(0,slash+1);
+}
+
+NormalizedURL URLNormalizer::resolverelative(const std::string& relative,const ParsedURL& base)const
+{
+    NormalizedURL url;
+    url.scheme = base.scheme;
+    url.credentials = base.credentials;
+    url.host = base.host;
+    url.port = base.port;
+    url.hasport = base.hasport;
+    //fragmentonly
+    if(!relative.empty()&&relative[0]=='#')
+    {
+        url.path = base.path;
+        url.query = base.query;
+        finalnormalize(url);
         return url;
     }
-    curl_url_set(handle,CURLUPART_FRAGMENT,nullptr,0);
-    char * normalized = nullptr;
-    if(curl_url_get(handle,CURLUPART_URL,&normalized,0)!=CURLUE_OK)
+    //queryonly
+    if(!relative.empty() && relative[0] == '?')
     {
-        curl_url_cleanup(handle);
+        url.path = base.path;
+        url.query = relative.substr(1);
+        finalnormalize(url);
         return url;
     }
-    std::string result = normalized;
-    curl_free(normalized);
-    curl_url_cleanup(handle);
+    //protocolonly(cdn)
+    if(relative.size()>=2&&relative[0]=='/'&& relative[1]=='/' )
+    {
+        std::string temp = relative.substr(2);
+        size_t slash = temp.find('/');
+        if(slash == std::string::npos)
+        {
+            url.host =temp;
+            url.path="/";
+        }
+        else
+        {
+            url.host = temp.substr(0,slash);
+            url.path = temp.substr(slash);
+        }
+        url.credentials.clear();
+        url.port.clear();
+        url.hasport=false;
+        finalnormalize(url);
+        return url;
+    }
+    //rootrelative
+    if(!relative.empty()&&relative[0]=='/')
+    {
+        url.path = relative;
+    }
+    else
+    {
+        //relativefile
+        url.path = dirof(std::string(base.path));
+        url.path += relative;
+    }
+    lowercaseScheme(url);
+    lowercaseHost(url);
+    removedefaultport(url);
+    removetrailingdot(url);
+    normalizepath(url);
+    return url;
+}
+
+std::string URLNormalizer::tostring(const NormalizedURL& url)const
+{
+    std::string result;
+    result+=url.scheme;
+    result+="://";
+
+    if(!url.credentials.empty())
+    {
+        result+=url.credentials;
+        result+="@";
+    }
+    result+=url.host;
+    if(url.hasport)
+    {
+        result+=":";
+        result+=url.port;
+    }
+    result += url.path;
+    if(!url.query.empty())
+    {
+        result+="?";
+        result+=url.query;
+    }
     return result;
 }
-bool URLNormalizer::isValidURL(const std::string& url) const
+
+void URLNormalizer::finalnormalize(NormalizedURL& url)const
 {
-
+    lowercaseScheme(url);
+    lowercaseHost(url);
+    removedefaultport(url); 
+    removetrailingdot(url);
+    normalizepath(url);
 }
-
-
-//CURLCODE
-    // // Reject empty URLs
-    // if(url.empty())
-    //     return false;
-    // // Require an URL containing "://"
-    // if(url.find("://") == std::string::npos)
-    //     return false;
-    // // Create a libcurl URL parser
-    // CURLU* handle = curl_url();
-    // // Abort if parser creation fails
-    // if(handle == nullptr)
-    //     return false;
-    // // Parse the complete URL
-    // CURLUcode code =curl_url_set(handle,CURLUPART_URL,url.c_str(),0);
-    // // Parsing failed
-    // if(code != CURLUE_OK)
-    // {
-    //     curl_url_cleanup(handle);
-    //     return false;
-    // }
-    // // Will receive parsed scheme and host
-    // char* scheme = nullptr;
-    // char* host = nullptr;
-    // bool valid = false;
-    // // Extract scheme and host from the parsed URL
-    // if(curl_url_get(handle,CURLUPART_SCHEME,&scheme,0) == CURLUE_OK &&
-    //    curl_url_get(handle,CURLUPART_HOST,&host,0) == CURLUE_OK)
-    // {
-    //     // Convert scheme to std::string
-    //     std::string protocol = scheme;
-    //     // Accept only HTTP/HTTPS URLs with a valid host
-    //     valid =(protocol == "http" ||protocol == "https") &&host != nullptr &&strlen(host) > 0;
-    // }
-    // // Free memory allocated by libcurl
-    // curl_free(scheme);
-    // curl_free(host);
-    // // Destroy the parser object
-    // curl_url_cleanup(handle);
-    // return valid;
