@@ -27,6 +27,7 @@ add_library(CrawlerLib
     src/crawler/Frontier.cpp
     src/parser/URLNormalizer.cpp
     src/parser/URLParser.cpp
+    src/common/PatternMatcher.cpp
 )
 
 target_include_directories(CrawlerLib PUBLIC
@@ -76,3 +77,15 @@ target_link_libraries(URLParserTests PRIVATE
     
 )
 gtest_discover_tests(URLParserTests)
+
+#KMP
+add_executable(KMPTests
+    tests/patternmatcher/test_basic.cpp
+)
+
+target_link_libraries(KMPTests PRIVATE
+    CrawlerLib
+    gtest_main
+    
+)
+gtest_discover_tests(KMPTests)
