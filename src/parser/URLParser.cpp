@@ -59,7 +59,8 @@ ParsedURL URLParser::parse(std::string_view url)const{
                 
             case State::Authority:
                 if(c=='/'&& inIPv6 == false)
-                {
+                {  
+                    if(i==start)return result; 
                     result.host = url.substr(start,i-start);
                     state = State::Path;
                     start = i;
@@ -68,6 +69,7 @@ ParsedURL URLParser::parse(std::string_view url)const{
                 else if(c=='[')
                 {
                     if(IPv6started)return result;
+                    if(i!=start)return result; //to avoid [ in between host
                     inIPv6=true;
                     IPv6started=true;
                 }
@@ -79,6 +81,7 @@ ParsedURL URLParser::parse(std::string_view url)const{
                 else if(c=='@'&& inIPv6 == false)
                 {
                     if(credseen)return result;
+                    if(i==start)return result; //return in https://@google.com
                     result.credentials = url.substr(start,i-start);
                     credseen=true;
                     if(result.credentials.empty())return result;
@@ -86,18 +89,21 @@ ParsedURL URLParser::parse(std::string_view url)const{
                 }
                 else if(c==':' && inIPv6 == false)
                 {
+                    if(i==start)return result;
                     result.host = url.substr(start,i-start);
                     state = State::Port;
                     start=i+1;
                 }
                 else if(c=='?'&& inIPv6 == false)
                 {
+                    if(i==start)return result;
                     result.host = url.substr(start,i-start);
                     state = State::Query;
                     start=i+1;
                 }
                 else if(c=='#'&& inIPv6 == false)
                 {
+                    if(i==start)return result;
                     result.host = url.substr(start,i-start);
                     state = State::Done;
                 }
@@ -182,12 +188,22 @@ ParsedURL URLParser::parse(std::string_view url)const{
     
     if(!result.port.empty())
     {
-        int port = std::stoi(std::string(result.port));
-        
-        if(port < 1 || port > 65535)
+        int port = 0;
+        for(char c : result.port)
+        {
+            port = port * 10 + (c - '0');
+            if(port > 65535)
+                return result;
+        }
+        if(port == 0)
             return result;
     }
     if(inIPv6)return result; //[ this brac was not closed
+    if(IPv6started) // reject malformed IPv6
+    {
+        if(result.host.empty())return result;
+        if(result.host.front()!='[' || result.host.back()!=']')return result; 
+    }
     std::string scheme(result.scheme);
     for(char& c : scheme)
     {

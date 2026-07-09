@@ -9,5 +9,6 @@ struct ParsedURL{
     std::string_view port;
     std::string_view path;
     std::string_view query;
+    bool hasport = false;
     bool valid = false;
 };
