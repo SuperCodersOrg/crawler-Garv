@@ -32,6 +32,11 @@ add_library(CrawlerLib
     src/common/PatternMatcher.cpp
     src/filter/QuickFilter.cpp
     src/filter/LinkFilter.cpp
+    src/browser/browserrenderer.cpp
+    src/browser/CDPconn.cpp
+    src/browser/HTTPClient.cpp
+    src/browser/WebSocketConn.cpp
+    src/browser/ChromeProcess.cpp
 )
 
 target_include_directories(CrawlerLib PUBLIC
@@ -41,6 +46,8 @@ target_include_directories(CrawlerLib PUBLIC
 target_link_libraries(CrawlerLib PUBLIC
     DataStructures
     CURL::libcurl
+    ws2_32
+    winhttp
 )
 
 # Tests
@@ -131,3 +138,17 @@ target_link_libraries(SEENSTORETests PRIVATE
 )
 
 gtest_discover_tests(SEENSTORETests)
+
+#RENDER TESTS
+add_executable(RENDERTests
+    tests/render/test.cpp
+)
+
+target_link_libraries(RENDERTests PRIVATE
+    CrawlerLib
+    gtest_main
+    ws2_32
+    winhttp
+)
+
+gtest_discover_tests(RENDERTests)
