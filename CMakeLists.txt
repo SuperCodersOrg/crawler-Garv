@@ -7,6 +7,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 enable_testing()
 find_package(CURL REQUIRED)
+find_path(MARIADB_INCLUDE_DIR
+    NAMES mysql/mysql.h
+    PATHS C:/msys64/ucrt64/include
+)
+find_library(MARIADB_LIBRARY
+    NAMES mariadb
+    PATHS C:/msys64/ucrt64/lib
+)
 # Data Structures
 set(DS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/DataStructures)
@@ -40,15 +48,18 @@ add_library(CrawlerLib
     src/browser/ChromeProcess.cpp
     src/network/HTTPFetcher.cpp
     src/network/PageFetcher.cpp
+    src/Storage/MySQLStorage.cpp
 )
 
 target_include_directories(CrawlerLib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${MARIADB_INCLUDE_DIR}
 )
 
 target_link_libraries(CrawlerLib PUBLIC
     DataStructures
     CURL::libcurl
+    ${MARIADB_LIBRARY}
     ws2_32
     winhttp
 )
@@ -168,6 +179,15 @@ target_link_libraries(FALLBACKTests PRIVATE
 )
 
 gtest_discover_tests(FALLBACKTests)
+
+#MYSQL TESTS
+add_executable(MySQLTest
+    tests/database/mysqltest.cpp
+)
+
+target_link_libraries(MySQLTest PRIVATE
+    CrawlerLib
+)
 
 #main
 add_executable(main
