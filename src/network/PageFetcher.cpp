@@ -19,6 +19,21 @@ void PageFetcher::initialize()
     browser_.start(false);   // headful (headless = false)
 }
 
+void PageFetcher::initialize(const ConfigLoader& config)
+{
+    bool headless = config.getBool("headless", false);
+    renderMinSize_ = config.getInt("render_min_size", 300);
+
+    int connectRetries = config.getInt("browser_connect_retries", 15);
+    int connectDelayMs = config.getInt("browser_connect_delay_ms", 200);
+    browser_.configure(connectRetries, connectDelayMs);
+
+    int httpTimeoutSec = config.getInt("http_timeout_seconds", 10);
+    int httpConnectTimeoutSec = config.getInt("http_connect_timeout_seconds", 5);
+    http_.configure(httpTimeoutSec, httpConnectTimeoutSec);
+    browser_.start(headless);
+}
+
 bool PageFetcher::needsRendering(const Page& page)
 {
     // HTTP failed
@@ -28,7 +43,7 @@ bool PageFetcher::needsRendering(const Page& page)
     if(page.html.empty())return true;
 
     // Very small page
-    if(page.html.size() < 300)return true;
+    if(static_cast<int>(page.html.size()) < renderMinSize_)return true;
 
      // These won't be fixed by rendering.
     if(page.statusCode == 401)

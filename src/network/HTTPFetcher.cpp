@@ -21,12 +21,19 @@ Page HTTPFetcher::fetch(const std::string& url)
     curl_easy_setopt(curl,CURLOPT_FOLLOWLOCATION,1L);
     curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,writeCallback);
     curl_easy_setopt(curl,CURLOPT_WRITEDATA,&page.html);
-    //fix for behaving like browser
     curl_easy_setopt(curl,CURLOPT_USERAGENT,
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 "
     "(KHTML, like Gecko) "
     "Chrome/137.0.0.0 Safari/537.36");
+    if (timeoutSec_ > 0)
+    {
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, static_cast<long>(timeoutSec_));
+    }
+    if (connectTimeoutSec_ > 0)
+    {
+        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, static_cast<long>(connectTimeoutSec_));
+    }
     CURLcode result =curl_easy_perform(curl);
     if(result == CURLE_OK)
     {
@@ -36,4 +43,10 @@ Page HTTPFetcher::fetch(const std::string& url)
     }
     curl_easy_cleanup(curl);
     return page;
+}
+
+void HTTPFetcher::configure(int timeoutSec, int connectTimeoutSec)
+{
+    timeoutSec_ = timeoutSec;
+    connectTimeoutSec_ = connectTimeoutSec;
 }

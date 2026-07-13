@@ -61,7 +61,9 @@ bool MySQLStorage::createTables()
             url TEXT NOT NULL,
             depth INT,
             state INT,
-            crawl_time TIMESTAMP,
+            crawl_time TIMESTAMP
+    DEFAULT CURRENT_TIMESTAMP
+    ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE(url(255))
         )
         )";

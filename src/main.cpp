@@ -1,11 +1,17 @@
 #include "crawler/Crawler.h"
+#include "config/ConfigLoader.h"
+#include <iostream>
 
 int main()
 {
-    Crawler crawler;
-    crawler.setmaxdepth(2);
-    crawler.setmaxpages(100);
-    crawler.samedomain(true);
-    crawler.addSeed("https://youtube.me/");
+    ConfigLoader config;
+    if (!config.load("config/crawler.conf"))
+    {
+        std::cerr << "Warning: Could not load config/crawler.conf using default settings.\n";
+    }
+
+    Crawler crawler(config);
+    std::string seed = config.getString("seed_url", "https://youtube.me/");
+    crawler.addSeed(seed);
     crawler.crawl();
 }

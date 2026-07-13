@@ -49,6 +49,7 @@ add_library(CrawlerLib
     src/network/HTTPFetcher.cpp
     src/network/PageFetcher.cpp
     src/Storage/MySQLStorage.cpp
+    src/config/ConfigLoader.cpp
 )
 
 target_include_directories(CrawlerLib PUBLIC
@@ -188,6 +189,18 @@ add_executable(MySQLTest
 target_link_libraries(MySQLTest PRIVATE
     CrawlerLib
 )
+
+#CONFIGLOADER TESTS
+add_executable(ConfigLoaderTests
+    tests/config/test_config.cpp
+)
+
+target_link_libraries(ConfigLoaderTests PRIVATE
+    CrawlerLib
+    gtest_main
+)
+
+gtest_discover_tests(ConfigLoaderTests)
 
 #main
 add_executable(main

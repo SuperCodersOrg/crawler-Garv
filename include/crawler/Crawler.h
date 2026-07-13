@@ -10,6 +10,7 @@
 #include "filter/QuickFilter.h"
 #include "filter/LinkFilter.h"
 #include "storage/MySQLStorage.h"
+#include "config/ConfigLoader.h"
 
 enum class EnqueueResult
 {
@@ -24,6 +25,7 @@ class Crawler
 {
 public:
     Crawler();
+    Crawler(const ConfigLoader& config);
     void addSeed(const std::string& url);
     void crawl();
     void setmaxdepth(int depth);

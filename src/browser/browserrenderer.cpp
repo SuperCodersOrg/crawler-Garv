@@ -17,7 +17,7 @@ bool BrowserRenderer::initializeCDP()
 {
     std::string response;
     bool success = false;
-    for (int i = 0; i < 15; ++i)
+    for (int i = 0; i < connectRetries_; ++i)
     {
         try
         {
@@ -27,7 +27,7 @@ bool BrowserRenderer::initializeCDP()
         }
         catch (const std::exception&)
         {
-            Sleep(200);
+            Sleep(connectDelayMs_);
         }
     }
     if (!success) return false;
@@ -87,5 +87,11 @@ std::string BrowserRenderer::render(
     if(!cdp_.navigate(url))return "";
     cdp_.waitForLoad();
     return cdp_.getHTML();
+}
+
+void BrowserRenderer::configure(int connectRetries, int connectDelayMs)
+{
+    connectRetries_ = connectRetries;
+    connectDelayMs_ = connectDelayMs;
 }
 

@@ -26,6 +26,34 @@ Crawler::Crawler()
     std::cout << "Tables created\n";
 }
 
+Crawler::Crawler(const ConfigLoader& config)
+    : linkfilter(
+        "config/blockeddomains.txt",
+        "config/blockedextensions.txt")
+{
+    fetcher.initialize(config);
+    std::string db_host = config.getString("mysql_host", "127.0.0.1");
+    std::string db_user = config.getString("mysql_user", "root");
+    std::string db_pass = config.getString("mysql_password", "8305");
+    std::string db_name = config.getString("mysql_database", "crawler");
+    int db_port = config.getInt("mysql_port", 3306);
+    if(!storage.connect(db_host, db_user, db_pass, db_name, db_port))
+    {
+        std::cout << "MySQL connection failed\n";
+        return;
+    }
+    std::cout << "Connected to MySQL\n";
+    if(!storage.createTables())
+    {
+        std::cout << "Failed to create tables\n";
+        return;
+    }
+    std::cout << "Tables created\n";
+    setmaxdepth(config.getInt("max_depth", 2));
+    setmaxpages(config.getInt("max_pages", 100));
+    samedomain(config.getBool("same_domain", true));
+}
+
 void Crawler::addSeed(const std::string& url)
 {
     ParsedURL parsed = parser.parse(url);
@@ -66,7 +94,7 @@ void Crawler::crawl()
         << "\n========== CRAWLER START ==========\n\n";
     while(!frontier.empty())
     {
-        if(crawledpages >= maxpages)
+        if(maxpages != -1 && crawledpages >= maxpages)
             break;
 
         URLDepth current =
@@ -289,7 +317,7 @@ EnqueueResult Crawler::enqueue(
     const ParsedURL& base,
     int depth)
 {
-    if(depth > maxdepth)
+    if(maxdepth != -1 && depth > maxdepth)
         return EnqueueResult::MaxDepth;
 
     if(!QuickFilter::shouldparse(url))
@@ -350,10 +378,10 @@ void Crawler::samedomain(bool enable)
 
 void Crawler::setmaxdepth(int depth)
 {
-    if(depth >= 0)maxdepth = depth;
+    if(depth >= 0 || depth == -1)maxdepth = depth;
 }
 
 void Crawler::setmaxpages(int pages)
 {
-    if(pages > 0)maxpages = pages;
+    if(pages > 0 || pages == -1)maxpages = pages;
 }
