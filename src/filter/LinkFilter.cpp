@@ -20,7 +20,11 @@ void LinkFilter::trim (std::string& str)
 void LinkFilter::loadfile(const std::string& filename,HashMap<std::string,bool>& table)
 {
     std::ifstream file(filename);
-    if(!file.is_open())return;
+    if(!file.is_open())
+    {
+        std::cerr<< "Could not open "<< filename<< '\n';
+        return;
+    }
     std::string line;
     while(std::getline(file,line))
     {
@@ -37,7 +41,15 @@ void LinkFilter::loadfile(const std::string& filename,HashMap<std::string,bool>&
 
 bool LinkFilter::hasblockeddomain(const NormalizedURL& url)const
 {
-    return blockedDomain.exists(url.host);
+    std::string host = url.host;
+    while(true)
+    {
+        if(blockedDomain.exists(host))return true;
+        std::size_t dot = host.find('.');
+        if(dot==std::string::npos)break;
+        host = host.substr(dot+1);
+    }
+    return false;
 }
 
 bool LinkFilter::hasblockedextension(const NormalizedURL& url)const
