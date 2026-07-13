@@ -15,6 +15,7 @@ public:
 private:
     PROCESS_INFORMATION processInfo_{};
     bool running_ = false;
+    HANDLE hJob_ = nullptr;
     std::string chromePath_;
     std::string profilePath_;
     std::string buildCommand(bool headless) const;
