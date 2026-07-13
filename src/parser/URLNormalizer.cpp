@@ -27,6 +27,12 @@ void URLNormalizer::lowercaseHost(NormalizedURL& url)const{
     for(char& c:url.host)c=std::tolower(static_cast<unsigned char>(c));
 }
 
+void URLNormalizer::removefragment(std::string& str) const
+{
+    size_t hash = str.find('#');
+    if(hash != std::string::npos)str.erase(hash);
+}
+
 void URLNormalizer::removedefaultport(NormalizedURL& url)const{
     if(!url.hasport)return;
     if(url.scheme == "http" && url.port == "80")
@@ -109,6 +115,8 @@ std::string URLNormalizer::dirof(const std::string& path)const
 
 NormalizedURL URLNormalizer::resolverelative(const std::string& relative,const ParsedURL& base)const
 {
+    std::string cleaned = relative;
+    removefragment(cleaned);
     NormalizedURL url;
     url.scheme = base.scheme;
     url.credentials = base.credentials;
@@ -116,7 +124,7 @@ NormalizedURL URLNormalizer::resolverelative(const std::string& relative,const P
     url.port = base.port;
     url.hasport = base.hasport;
     //fragmentonly
-    if(!relative.empty()&&relative[0]=='#')
+    if(!cleaned.empty()&&cleaned[0]=='#')
     {
         url.path = base.path;
         url.query = base.query;
@@ -124,17 +132,17 @@ NormalizedURL URLNormalizer::resolverelative(const std::string& relative,const P
         return url;
     }
     //queryonly
-    if(!relative.empty() && relative[0] == '?')
+    if(!cleaned.empty() && cleaned[0] == '?')
     {
         url.path = base.path;
-        url.query = relative.substr(1);
+        url.query = cleaned.substr(1);
         finalnormalize(url);
         return url;
     }
     //protocolonly(cdn)
-    if(relative.size()>=2&&relative[0]=='/'&& relative[1]=='/' )
+    if(cleaned.size()>=2&&cleaned[0]=='/'&& cleaned[1]=='/' )
     {
-        std::string temp = relative.substr(2);
+        std::string temp = cleaned.substr(2);
         size_t slash = temp.find('/');
         if(slash == std::string::npos)
         {
@@ -153,15 +161,15 @@ NormalizedURL URLNormalizer::resolverelative(const std::string& relative,const P
         return url;
     }
     //rootrelative
-    if(!relative.empty()&&relative[0]=='/')
+    if(!cleaned.empty()&&cleaned[0]=='/')
     {
-        url.path = relative;
+        url.path = cleaned;
     }
     else
     {
         //relativefile
         url.path = dirof(std::string(base.path));
-        url.path += relative;
+        url.path += cleaned;
     }
     lowercaseScheme(url);
     lowercaseHost(url);

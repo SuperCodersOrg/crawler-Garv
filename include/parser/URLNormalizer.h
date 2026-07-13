@@ -13,6 +13,7 @@ class URLNormalizer{
         //helper method for rr
         std::string dirof(const std::string& path)const;
         void finalnormalize(NormalizedURL& url)const;
+        void removefragment(std::string& str)const;
     public:
         NormalizedURL normalize(const ParsedURL& url)const;
         //cases -   
