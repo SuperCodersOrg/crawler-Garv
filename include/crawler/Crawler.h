@@ -9,6 +9,7 @@
 #include "parser/URLNormalizer.h"
 #include "filter/QuickFilter.h"
 #include "filter/LinkFilter.h"
+#include "storage/MySQLStorage.h"
 
 enum class EnqueueResult
 {
@@ -43,6 +44,7 @@ private:
     URLParser parser;
     URLNormalizer normalizer;
     LinkFilter linkfilter;
+    MySQLStorage storage;
     int maxdepth =2;
     int maxpages = 1000;
     int crawledpages=0;

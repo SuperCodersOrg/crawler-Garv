@@ -8,6 +8,22 @@ Crawler::Crawler()
         "config/blockedextensions.txt")
 {
     fetcher.initialize();
+    if(!storage.connect(
+        "127.0.0.1",
+        "root",
+        "8305",
+        "crawler"))
+    {
+        std::cout << "MySQL connection failed\n";
+        return;
+    }
+    std::cout << "Connected to MySQL\n";
+    if(!storage.createTables())
+    {
+        std::cout << "Failed to create tables\n";
+        return;
+    }
+    std::cout << "Tables created\n";
 }
 
 void Crawler::addSeed(const std::string& url)
@@ -33,16 +49,15 @@ void Crawler::addSeed(const std::string& url)
 
     std::string finalurl =
         normalizer.tostring(normalized);
-
-    if(seen.tryAdd(finalurl,0))
-    {
-        frontier.enqueue({finalurl,0});
-
-        std::cout
+        if(seen.tryAdd(finalurl,0))
+        {
+            frontier.enqueue({finalurl,0});
+            std::cout
             << "[Seed] "
             << finalurl
             << '\n';
-    }
+        }
+        storage.insertURL(finalurl,0,URLState::Queued);
 }
 
 void Crawler::crawl()
@@ -137,9 +152,9 @@ void Crawler::crawlPage(const URLDepth& page)
         << page.depth
         << '\n';
 
-    Page fetched =
-        fetcher.fetch(page.URL);
-
+    storage.updateState(page.URL,URLState::Crawling);
+    Page fetched =fetcher.fetch(page.URL);
+    fetched.url = page.URL;
     if(fetched.rendered)
         renderedPages++;
     else
@@ -164,31 +179,38 @@ void Crawler::crawlPage(const URLDepth& page)
     {
         failedPages++;
 
-        seen.updateState(
-            page.URL,
-            URLState::Failed);
-
+        seen.updateState(page.URL,URLState::Failed);
+        storage.updateState(page.URL,URLState::Failed);
         std::cout
             << "Result   : Failed\n";
 
         std::cout
             << "------------------------------------\n";
-
+        
         return;
     }
 
     seen.updateState(
         page.URL,
         URLState::Completed);
+    
+    storage.updateState(page.URL,URLState::Completed);
 
     ParsedURL base =
         parser.parse(page.URL);
-
+    std::cout
+    << "Page URL: "
+    << fetched.url
+    << '\n';
+    if(!storage.savePage(fetched))
+    {
+        std::cout << "savePage failed\n";
+    }
     processLinks(
         fetched.html,
         base,
         page.depth + 1);
-
+    
     std::cout
         << "Frontier : "
         << frontier.size()
@@ -309,6 +331,8 @@ EnqueueResult Crawler::enqueue(
 
     if(!seen.tryAdd(finalurl, depth))
         return EnqueueResult::Duplicate;
+    
+    storage.insertURL(finalurl,depth,URLState::Queued);
 
     frontier.enqueue(
     {

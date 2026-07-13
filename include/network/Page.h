@@ -7,4 +7,6 @@ struct Page
     std::string html;
     int statusCode = 0;
     bool rendered = false;
+    std::string contentType;
+    std::string title;
 };
