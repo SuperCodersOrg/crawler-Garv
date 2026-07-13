@@ -29,3 +29,10 @@ rar
 7z
 gz
 tar
+
+wp-json
+xmlrpc.php
+feed
+oembed
+robots.txt
+sitemap
