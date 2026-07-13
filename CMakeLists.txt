@@ -26,6 +26,7 @@ include(GoogleTest)
 add_library(CrawlerLib
     src/crawler/Frontier.cpp
     src/crawler/SeenStore.cpp
+    src/crawler/Crawler.cpp
     src/parser/URLNormalizer.cpp
     src/parser/URLParser.cpp
     src/parser/HTMLParser.cpp
@@ -167,3 +168,18 @@ target_link_libraries(FALLBACKTests PRIVATE
 )
 
 gtest_discover_tests(FALLBACKTests)
+
+#main
+add_executable(main
+    src/main.cpp
+)
+
+target_link_libraries(main PRIVATE
+    CrawlerLib
+)
+
+# to copy config into build
+file(COPY
+    ${CMAKE_SOURCE_DIR}/config
+    DESTINATION ${CMAKE_BINARY_DIR}
+)
