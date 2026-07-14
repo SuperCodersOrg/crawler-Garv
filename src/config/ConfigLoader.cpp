@@ -1,6 +1,5 @@
 #include "config/ConfigLoader.h"
 #include <fstream>
-#include <sstream>
 
 bool ConfigLoader::load(const std::string& filepath)
 {
@@ -22,7 +21,7 @@ bool ConfigLoader::load(const std::string& filepath)
             continue;
         }
 
-        // Find theDelimiter '='
+        // Find = 
         size_t delimiterPos = line.find('=');
         if (delimiterPos == std::string::npos)
         {
@@ -34,7 +33,7 @@ bool ConfigLoader::load(const std::string& filepath)
 
         if (!key.empty())
         {
-            // Make keys case-insensitive by storing them in lowercase manually
+            // Make keys case insensitive by storing them in lowercase manually
             for (char &c : key)
             {
                 if (c >= 'A' && c <= 'Z')
@@ -45,7 +44,6 @@ bool ConfigLoader::load(const std::string& filepath)
             settings_.insert(key, value);
         }
     }
-
     return true;
 }
 
@@ -102,11 +100,11 @@ bool ConfigLoader::getBool(const std::string& key, bool defaultVal) const
         }
     }
 
-    if (valStr == "true" || valStr == "1" || valStr == "yes" || valStr == "on")
+    if (valStr == "true"|| valStr == "1"|| valStr == "yes"|| valStr == "on")
     {
         return true;
     }
-    if (valStr == "false" || valStr == "0" || valStr == "no" || valStr == "off")
+    if (valStr == "false"|| valStr == "0" || valStr == "no" || valStr == "off")
     {
         return false;
     }

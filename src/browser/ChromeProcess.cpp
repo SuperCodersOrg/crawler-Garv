@@ -48,8 +48,8 @@ bool ChromeProcess::start(bool headless)
     hJob_ = CreateJobObjectA(nullptr, nullptr);
     if (hJob_)
     {
-        JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {};
-        jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = {}; //initialize to 0
+        jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE; //when jobobjectisdestoryed automatically terminate this too
         SetInformationJobObject(hJob_, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
     }
 
@@ -64,16 +64,16 @@ bool ChromeProcess::start(bool headless)
     std::string command = buildCommand(headless);
     BOOL success =
         CreateProcessA(
-            nullptr,
-            command.data(),
-            nullptr,
-            nullptr,
-            FALSE,
-            0,
-            nullptr,
-            nullptr,
-            &startup,
-            &processInfo_);
+            nullptr,//app name
+            command.data(),//command
+            nullptr,//default process sec
+            nullptr,//default thread sec
+            FALSE,//dont inherit handles from current process
+            0,//no special creation flags
+            nullptr,//env
+            nullptr,//working dir
+            &startup,//startup settings
+            &processInfo_);//windows fill this - process handle , thread handle , ID 
     if (!success)
     {
         if (hJob_)
@@ -86,10 +86,10 @@ bool ChromeProcess::start(bool headless)
 
     if (hJob_)
     {
-        AssignProcessToJobObject(hJob_, processInfo_.hProcess);
+        AssignProcessToJobObject(hJob_, processInfo_.hProcess);//assign chrome to hjob
     }
 
-    running_ = true;
+    running_ = true;    
     Sleep(1000);
     return true;
 }

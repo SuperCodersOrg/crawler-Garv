@@ -1,30 +1,39 @@
-#include <mysql/mysql.h>
+#include "storage/MySQLStorage.h"
+#include "DynamicArray.h"
 #include <iostream>
 
 int main()
 {
-    MYSQL* connection = mysql_init(nullptr);
-    if(connection == nullptr)
+    MySQLStorage storage;
+    if(!storage.connect("127.0.0.1", "root", "8305", "crawler", 3306))
     {
-        std::cout << "mysql_init failed\n";
+        std::cout << "Connection failed\n";
         return 1;
     }
-    if(mysql_real_connect(
-            connection,
-            "127.0.0.1",
-            "root",
-            "8305",
-            "crawler",
-            3306,
-            nullptr,
-            0) == nullptr)
+    std::cout << "Connected using MySQLStorage!\n";
+
+    // Insert trial URLs to verify
+    storage.insertURL("https://example.com/test_resume", 2, URLState::Queued);
+    storage.insertURL("https://example.com/test_resume_done", 1, URLState::Completed);
+
+    DynamicArray<std::string> urls;
+    DynamicArray<int> depths;
+    DynamicArray<URLState> states;
+
+    if(storage.loadURLs(urls, depths, states))
     {
-        std::cout << mysql_error(connection) << '\n';
-        mysql_close(connection);
-        return 1;
+        std::cout << "Successfully loaded " << urls.size() << " URLs from DB:\n";
+        for(int i = 0; i < urls.size(); ++i)
+        {
+            std::cout << " - " << urls[i] << " (depth: " << depths[i] 
+                      << ", state: " << static_cast<int>(states[i]) << ")\n";
+        }
+    }
+    else
+    {
+        std::cout << "Failed to load URLs!\n";
     }
 
-    std::cout << "Connected to MySQL!\n";
-
-    mysql_close(connection);
+    storage.disconnect();
+    return 0;
 }

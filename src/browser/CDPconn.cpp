@@ -1,5 +1,4 @@
 #include "browser/CDPconn.h"
-
 using json = nlohmann::json;
 
 bool CDPConnection::connect(const std::string& url)

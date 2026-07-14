@@ -9,9 +9,8 @@ int main()
     {
         std::cerr << "Warning: Could not load config/crawler.conf using default settings.\n";
     }
-
     Crawler crawler(config);
-    std::string seed = config.getString("seed_url", "https://youtube.me/");
+    std::string seed = config.getString("seed_url", "https://codequotient.com/");
     crawler.addSeed(seed);
     crawler.crawl();
 }

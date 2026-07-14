@@ -1,6 +1,7 @@
 #include "storage/MySQLStorage.h"
 #include <cstring>
 #include <iostream>
+#include <cstdlib>
 
 MySQLStorage::MySQLStorage()
     : connection_(nullptr)
@@ -102,7 +103,9 @@ bool MySQLStorage::createTables()
 
 bool MySQLStorage::insertURL(const std::string& url,int depth,URLState state)
 {
-    const char* query ="INSERT INTO urls(url, depth, state ) VALUES(?, ?, ?)";
+    const char* query =
+        "INSERT INTO urls(url, depth, state) VALUES(?, ?, ?) "
+        "ON DUPLICATE KEY UPDATE depth = VALUES(depth), state = VALUES(state)";
     MYSQL_STMT* stmt = mysql_stmt_init(connection_);
     if(stmt == nullptr)return false;
     if(mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
@@ -280,3 +283,59 @@ bool MySQLStorage::urlExists(const std::string& url)
     mysql_stmt_close(stmt);
     return found;
 }
+
+bool MySQLStorage::loadURLs(DynamicArray<std::string>& urls, DynamicArray<int>& depths, DynamicArray<URLState>& states)
+{
+    if(connection_ == nullptr)
+        return false;
+
+    const char* query = "SELECT url, depth, state FROM urls";
+    if(mysql_query(connection_, query) != 0)
+    {
+        std::cout << "loadURLs query failed: "
+            << mysql_error(connection_)
+            << '\n';
+        return false;
+    }
+
+    MYSQL_RES* result = mysql_store_result(connection_);
+    if(result == nullptr)
+        return false;
+
+    MYSQL_ROW row;
+    while((row = mysql_fetch_row(result)))
+    {
+        if(row[0] && row[1] && row[2])
+        {
+            urls.append(row[0]);
+            depths.append(std::atoi(row[1]));
+            states.append(static_cast<URLState>(std::atoi(row[2])));
+        }
+    }
+
+    mysql_free_result(result);
+    return true;
+}
+
+bool MySQLStorage::clearStorage()
+{
+    if(connection_ == nullptr)
+        return false;
+
+    if(mysql_query(connection_, "TRUNCATE TABLE urls") != 0)
+    {
+        std::cout << "Failed to truncate urls table: "
+            << mysql_error(connection_) << '\n';
+        return false;
+    }
+
+    if(mysql_query(connection_, "TRUNCATE TABLE pages") != 0)
+    {
+        std::cout << "Failed to truncate pages table: "
+            << mysql_error(connection_) << '\n';
+        return false;
+    }
+
+    return true;
+}
+

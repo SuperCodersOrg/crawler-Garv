@@ -7,8 +7,7 @@ Page PageFetcher::fetch(const std::string& url)
     {
         page.html=browser_.render(url);
         page.rendered = true;
-
-        // If rendering succeeded, treat it as a successful fetch.
+        // If rendering succeeded treat it as a successful fetch.
         if(!page.html.empty())page.statusCode = 200;
     }
     return page;
@@ -66,6 +65,7 @@ bool PageFetcher::needsRendering(const Page& page)
     if(page.html.find("id=\"__next\"") != std::string::npos)return true;
 
     if(page.html.find("id=\"__nuxt\"") != std::string::npos)return true;
+    
     auto links = parser_.extractlinks(page.html);
     if(links.size() == 0)
         return true;

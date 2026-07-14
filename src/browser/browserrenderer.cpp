@@ -1,7 +1,7 @@
 #include "browser/BrowserRenderer.h"
 
 #include <windows.h>
-
+#include <iostream>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
@@ -21,7 +21,7 @@ bool BrowserRenderer::initializeCDP()
     {
         try
         {
-            response = http_.get(L"127.0.0.1", 9222, L"/json/version");
+            response = http_.get(L"127.0.0.1", 9222, L"/json/version");//wont work on linux wide char
             success = true;
             break;
         }
@@ -76,8 +76,7 @@ void BrowserRenderer::stop()
     initialized_ = false;
 }
 
-std::string BrowserRenderer::render(
-    const std::string& url)
+std::string BrowserRenderer::render(const std::string& url)
 {
     if(!initialized_)
     {

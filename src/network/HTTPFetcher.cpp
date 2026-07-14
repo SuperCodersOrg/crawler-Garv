@@ -1,14 +1,15 @@
 #include "network/HTTPFetcher.h"
 #include <curl/curl.h>
 
+//anonymous namespace only this file can call 
 namespace
 {
-size_t writeCallback(void* contents,size_t size,size_t nmemb,void* userp)
-{
-    std::string* html = static_cast<std::string*>(userp);
-    html->append(static_cast<char*>(contents),size * nmemb);
-    return size * nmemb;
-}
+    size_t writeCallback(void* contents,size_t size,size_t nmemb,void* userp)
+    {
+        std::string* html = static_cast<std::string*>(userp);
+        html->append(static_cast<char*>(contents),size * nmemb);
+        return size * nmemb;
+    }
 }
 
 Page HTTPFetcher::fetch(const std::string& url)
@@ -18,10 +19,10 @@ Page HTTPFetcher::fetch(const std::string& url)
     CURL* curl = curl_easy_init();
     if(!curl)return page;
     curl_easy_setopt(curl,CURLOPT_URL,url.c_str());
-    curl_easy_setopt(curl,CURLOPT_FOLLOWLOCATION,1L);
+    curl_easy_setopt(curl,CURLOPT_FOLLOWLOCATION,1L);//redirect
     curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,writeCallback);
-    curl_easy_setopt(curl,CURLOPT_WRITEDATA,&page.html);
-    curl_easy_setopt(curl,CURLOPT_USERAGENT,
+    curl_easy_setopt(curl,CURLOPT_WRITEDATA,&page.html); // page.html = userp in writecallback
+    curl_easy_setopt(curl,CURLOPT_USERAGENT,//behave as a browser
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 "
     "(KHTML, like Gecko) "

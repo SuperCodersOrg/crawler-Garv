@@ -25,6 +25,7 @@ class Crawler
 {
 public:
     Crawler();
+    //constructor with config file (settings)
     Crawler(const ConfigLoader& config);
     void addSeed(const std::string& url);
     void crawl();
@@ -38,7 +39,7 @@ private:
     void crawlPage(const URLDepth& page);
     void processLinks(std::string_view html,const ParsedURL& base,int nextDepth);
     EnqueueResult enqueue(const std::string& url,const ParsedURL& base,int depth);
-private:
+    void loadCrawlState();
     Frontier frontier;
     SeenStore seen;
     PageFetcher fetcher;

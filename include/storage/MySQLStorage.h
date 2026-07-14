@@ -2,6 +2,7 @@
 
 #include <mysql/mysql.h>
 #include <string>
+#include "DynamicArray.h"
 #include "network/Page.h"
 #include "crawler/URLState.h"
 
@@ -19,6 +20,8 @@ public:
     bool updateState(const std::string& url,URLState state);
     bool isConnected() const;
     bool urlExists(const std::string& url);
+    bool loadURLs(DynamicArray<std::string>& urls, DynamicArray<int>& depths, DynamicArray<URLState>& states);
+    bool clearStorage();
 private:
     MYSQL* connection_;
 };

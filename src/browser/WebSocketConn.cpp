@@ -12,8 +12,7 @@ WebSocketConnection::~WebSocketConnection()
 {
     disconnect();
 }
-WebSocketConnection::Endpoint
-WebSocketConnection::parseURL(const std::string& url)
+WebSocketConnection::Endpoint WebSocketConnection::parseURL(const std::string& url)
 {
     const std::string prefix = "ws://";
     if (url.rfind(prefix, 0) != 0)throw std::runtime_error("Invalid websocket URL.");

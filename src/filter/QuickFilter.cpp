@@ -24,15 +24,13 @@ bool QuickFilter::startswith(std::string_view txt,std::string_view prefix)
 
 bool QuickFilter::shouldparse(std::string_view url)
 {
+    if(url.empty())return false;
+
     //remove leading whitespace
-    while(!url.empty()&&iswhitespace(url.front()))
-        url.remove_prefix(1);
+    while(!url.empty()&&iswhitespace(url.front()))url.remove_prefix(1);
 
     //remove trailing whitespace
-    while(!url.empty()&&iswhitespace(url.back()))
-        url.remove_suffix(1);
-    
-    if(url.empty())return false;
+    while(!url.empty()&&iswhitespace(url.back()))url.remove_suffix(1);
 
     if(url.front()=='#')return false;
 
