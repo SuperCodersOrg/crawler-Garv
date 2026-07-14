@@ -124,7 +124,7 @@ NormalizedURL URLNormalizer::resolverelative(const std::string& relative,const P
     url.port = base.port;
     url.hasport = base.hasport;
     //fragmentonly
-    if(!cleaned.empty()&&cleaned[0]=='#')
+    if(!relative.empty()&&relative[0]=='#')
     {
         url.path = base.path;
         url.query = base.query;
