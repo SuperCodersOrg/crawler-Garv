@@ -28,7 +28,7 @@ std::string HTMLParser::extractattributes(std::string_view html,size_t pos,std::
     }
 
     if(i>=html.length())return "";
-    return std::string(html.substr(start,i-start));
+    return trim(html.substr(start,i-start));
 }
 //works for href 
 DynamicArray<std::string> HTMLParser::extractlinks(std::string_view html)const{
@@ -46,4 +46,24 @@ DynamicArray<std::string> HTMLParser::extractlinks(std::string_view html)const{
         if(!url.empty())links.append(url);
     }
     return links;
+}
+
+
+std::string HTMLParser::trim(std::string_view str) const
+{
+    size_t start = 0;
+    size_t end = str.length();
+
+    // Trim leading whitespace
+    while (start < end &&std::isspace(static_cast<unsigned char>(str[start])))
+    {
+        start++;
+    }
+
+    // Trim trailing whitespace
+    while (end > start &&std::isspace(static_cast<unsigned char>(str[end - 1])))
+    {
+        end--;
+    }
+    return std::string(str.substr(start, end - start));
 }
