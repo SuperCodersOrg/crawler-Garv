@@ -32,6 +32,8 @@ bool QuickFilter::shouldparse(std::string_view url)
     //remove trailing whitespace
     while(!url.empty()&&iswhitespace(url.back()))url.remove_suffix(1);
 
+    if(url.empty())return false;
+
     if(url.front()=='#')return false;
 
     if(startswith(url,"javascript:"))return false;

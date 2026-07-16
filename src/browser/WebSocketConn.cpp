@@ -54,11 +54,39 @@ bool WebSocketConnection::send(const std::string& message)
     return true;
 }
 
-std::string WebSocketConnection::receive()
+std::string WebSocketConnection::receive(int timeoutMs)
 {
     if (!connected_)return "";
     buffer_.clear();
-    websocket_.read(buffer_);
+    
+    if (timeoutMs > 0)
+    {
+        SOCKET s = websocket_.next_layer().native_handle();
+        DWORD tv = timeoutMs;
+        setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+    }
+    
+    try
+    {
+        websocket_.read(buffer_);
+    }
+    catch (const boost::system::system_error&)
+    {
+        if (timeoutMs > 0)
+        {
+            SOCKET s = websocket_.next_layer().native_handle();
+            DWORD tv = 0;
+            setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+        }
+        return "";
+    }
+    
+    if (timeoutMs > 0)
+    {
+        SOCKET s = websocket_.next_layer().native_handle();
+        DWORD tv = 0;
+        setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+    }
     return boost::beast::buffers_to_string(buffer_.data());
 }
 

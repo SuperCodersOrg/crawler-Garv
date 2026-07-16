@@ -1,4 +1,5 @@
 #include "browser/CDPconn.h"
+#include <chrono>
 using json = nlohmann::json;
 
 bool CDPConnection::connect(const std::string& url)
@@ -63,11 +64,29 @@ std::string CDPConnection::getHTML()
     return reply["result"]["result"]["value"];
 }
 
-bool CDPConnection::waitForLoad()
+bool CDPConnection::waitForLoad(int timeoutMs)
 {
+    auto start = std::chrono::steady_clock::now();
     while (true)
     {
-        json message = json::parse(websocket_.receive());
+        auto now = std::chrono::steady_clock::now();
+        int elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+        int remaining = timeoutMs - elapsed;
+        if (remaining <= 0) return false;
+        
+        std::string raw = websocket_.receive(remaining);
+        if (raw.empty()) return false;
+        
+        json message;
+        try
+        {
+            message = json::parse(raw);
+        }
+        catch (...)
+        {
+            continue;
+        }
+        
         if (!message.contains("method"))continue;
         if (message["method"] == "Page.loadEventFired")return true;
     }

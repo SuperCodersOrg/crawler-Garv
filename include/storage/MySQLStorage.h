@@ -11,7 +11,6 @@ class MySQLStorage
 public:
     MySQLStorage();
     ~MySQLStorage();
-
     bool connect(const std::string& host,const std::string& user,const std::string& password,const std::string& database,unsigned int port = 3306);
     void disconnect();
     bool createTables();

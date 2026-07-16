@@ -14,7 +14,7 @@ public:
     bool createPage();
     bool enablePage();
     bool enableRuntime();
-    bool waitForLoad();
+    bool waitForLoad(int timeoutMs = 10000);
     bool navigate(const std::string& url);
     std::string getHTML();
 private:

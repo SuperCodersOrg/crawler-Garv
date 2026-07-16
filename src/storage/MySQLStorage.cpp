@@ -63,8 +63,8 @@ bool MySQLStorage::createTables()
             depth INT,
             state INT,
             crawl_time TIMESTAMP
-    DEFAULT CURRENT_TIMESTAMP
-    ON UPDATE CURRENT_TIMESTAMP,
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
             UNIQUE(url(255))
         )
         )";
@@ -86,7 +86,10 @@ bool MySQLStorage::createTables()
             status_code INT,
             rendered BOOLEAN,
             html LONGTEXT,
-            UNIQUE(url(255))
+            UNIQUE(url(255)),
+            crawl_time TIMESTAMP
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
         )
         )";
 
@@ -210,10 +213,7 @@ bool MySQLStorage::savePage(const Page& page)
     bind[3].length = &htmlLength;
     if(mysql_stmt_bind_param(stmt, bind) != 0)
     {
-        std::cout
-            << "Bind failed: "
-            << mysql_stmt_error(stmt)
-            << '\n';
+        std::cout<< "Bind failed: "<< mysql_stmt_error(stmt)<< '\n';
 
         mysql_stmt_close(stmt);
         return false;
@@ -221,10 +221,7 @@ bool MySQLStorage::savePage(const Page& page)
     bool success = (mysql_stmt_execute(stmt) == 0);
     if(!success)
     {
-        std::cout
-            << "Execute failed: "
-            << mysql_stmt_error(stmt)
-            << '\n';
+        std::cout<< "Execute failed: "<< mysql_stmt_error(stmt)<< '\n';
     }
     mysql_stmt_close(stmt);
     return success;
@@ -241,10 +238,7 @@ bool MySQLStorage::urlExists(const std::string& url)
     if(stmt == nullptr)return false;
     if(mysql_stmt_prepare(stmt, query, strlen(query)) != 0)
     {
-        std::cout
-            << "Prepare failed: "
-            << mysql_stmt_error(stmt)
-            << '\n';
+        std::cout<< "Prepare failed: "<< mysql_stmt_error(stmt)<< '\n';
 
         mysql_stmt_close(stmt);
         return false;
@@ -256,10 +250,7 @@ bool MySQLStorage::urlExists(const std::string& url)
     param[0].length = &length;
     if(mysql_stmt_bind_param(stmt, param) != 0)
     {
-        std::cout
-            << "Bind: "
-            << mysql_stmt_error(stmt)
-            << '\n';
+        std::cout<< "Bind: "<< mysql_stmt_error(stmt)<< '\n';
 
         mysql_stmt_close(stmt);
         return false;
@@ -286,21 +277,17 @@ bool MySQLStorage::urlExists(const std::string& url)
 
 bool MySQLStorage::loadURLs(DynamicArray<std::string>& urls, DynamicArray<int>& depths, DynamicArray<URLState>& states)
 {
-    if(connection_ == nullptr)
-        return false;
+    if(connection_ == nullptr)return false;
 
     const char* query = "SELECT url, depth, state FROM urls";
     if(mysql_query(connection_, query) != 0)
     {
-        std::cout << "loadURLs query failed: "
-            << mysql_error(connection_)
-            << '\n';
+        std::cout << "loadURLs query failed: "<< mysql_error(connection_)<< '\n';
         return false;
     }
 
     MYSQL_RES* result = mysql_store_result(connection_);
-    if(result == nullptr)
-        return false;
+    if(result == nullptr)return false;
 
     MYSQL_ROW row;
     while((row = mysql_fetch_row(result)))
@@ -324,18 +311,15 @@ bool MySQLStorage::clearStorage()
 
     if(mysql_query(connection_, "TRUNCATE TABLE urls") != 0)
     {
-        std::cout << "Failed to truncate urls table: "
-            << mysql_error(connection_) << '\n';
+        std::cout << "Failed to truncate urls table: "<< mysql_error(connection_) << '\n';
         return false;
     }
 
     if(mysql_query(connection_, "TRUNCATE TABLE pages") != 0)
     {
-        std::cout << "Failed to truncate pages table: "
-            << mysql_error(connection_) << '\n';
+        std::cout << "Failed to truncate pages table: "<< mysql_error(connection_) << '\n';
         return false;
     }
-
     return true;
 }
 

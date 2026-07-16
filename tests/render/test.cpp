@@ -11,7 +11,7 @@ using json = nlohmann::json;
 TEST(CDPConnectionTest, MultipleWebsiteNavigation)
 {
     ChromeProcess chrome;
-    ASSERT_TRUE(chrome.start());
+    ASSERT_TRUE(chrome.start(true));
     HTTPClient http;
     std::string response =http.get(L"127.0.0.1",9222,L"/json/version");
     json versionInfo = json::parse(response);

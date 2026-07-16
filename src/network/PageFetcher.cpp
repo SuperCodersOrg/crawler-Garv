@@ -25,7 +25,8 @@ void PageFetcher::initialize(const ConfigLoader& config)
 
     int connectRetries = config.getInt("browser_connect_retries", 15);
     int connectDelayMs = config.getInt("browser_connect_delay_ms", 200);
-    browser_.configure(connectRetries, connectDelayMs);
+    int loadTimeoutSec = config.getInt("browser_load_timeout_seconds", 10);
+    browser_.configure(connectRetries, connectDelayMs, loadTimeoutSec * 1000);
 
     int httpTimeoutSec = config.getInt("http_timeout_seconds", 10);
     int httpConnectTimeoutSec = config.getInt("http_connect_timeout_seconds", 5);

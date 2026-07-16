@@ -12,7 +12,7 @@ public:
     bool start(bool headless = true);
     void stop();
     std::string render(const std::string& url);
-    void configure(int connectRetries, int connectDelayMs);
+    void configure(int connectRetries, int connectDelayMs, int loadTimeoutMs = 10000);
 private:
     ChromeProcess chrome_;
     HTTPClient http_;
@@ -20,5 +20,6 @@ private:
     bool initialized_ = false;
     int connectRetries_ = 15;
     int connectDelayMs_ = 200;
+    int loadTimeoutMs_ = 10000;
     bool initializeCDP();
 };

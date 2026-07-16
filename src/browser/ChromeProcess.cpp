@@ -25,7 +25,7 @@ ChromeProcess::~ChromeProcess()
 
 std::string ChromeProcess::buildCommand(bool headless) const
 {
-    std::string command;
+    std::string command;    
     command += "\"" + chromePath_ + "\" ";
     command += "--remote-debugging-port=9222 ";
     command += "--user-data-dir=\"" + profilePath_ + "\" ";
@@ -33,6 +33,7 @@ std::string ChromeProcess::buildCommand(bool headless) const
     {
         command += "--headless=new ";
         command += "--disable-gpu ";
+        command += "--window-position=-2400,-2400 ";
     }
     command += "--no-first-run ";
     command += "--no-default-browser-check ";

@@ -14,7 +14,7 @@ public:
     ~WebSocketConnection();
     bool connect(const std::string& url);
     bool send(const std::string& message);
-    std::string receive();
+    std::string receive(int timeoutMs = 0);
     void disconnect();
     bool isConnected() const;
 private:

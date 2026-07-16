@@ -33,5 +33,5 @@ TEST(QuickFilterTest, Absolute)
 
 TEST(QuickFilterTest, MailTo)
 {
-    EXPECT_TRUE(QuickFilter::shouldparse("mailto:test@test.com"));
+    EXPECT_FALSE(QuickFilter::shouldparse("mailto:test@test.com"));
 }

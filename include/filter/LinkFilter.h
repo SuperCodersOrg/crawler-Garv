@@ -6,8 +6,8 @@
 class LinkFilter
 {
     public:
-        bool shouldvisit(const NormalizedURL& url)const;
         LinkFilter(const std::string& domainfile="config/blockeddomains.txt",const std::string& extensionfile="config/blockedextensions.txt");
+        bool shouldvisit(const NormalizedURL& url)const;
 
     private:
         HashMap<std::string,bool> blockedDomain;

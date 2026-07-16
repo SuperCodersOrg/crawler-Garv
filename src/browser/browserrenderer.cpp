@@ -84,13 +84,14 @@ std::string BrowserRenderer::render(const std::string& url)
     }
 
     if(!cdp_.navigate(url))return "";
-    cdp_.waitForLoad();
+    cdp_.waitForLoad(loadTimeoutMs_);
     return cdp_.getHTML();
 }
 
-void BrowserRenderer::configure(int connectRetries, int connectDelayMs)
+void BrowserRenderer::configure(int connectRetries, int connectDelayMs, int loadTimeoutMs)
 {
     connectRetries_ = connectRetries;
     connectDelayMs_ = connectDelayMs;
+    loadTimeoutMs_ = loadTimeoutMs;
 }
 

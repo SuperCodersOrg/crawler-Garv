@@ -113,11 +113,20 @@ TEST(PatternMatcherTest, WholeTextMatchesPattern)
     EXPECT_EQ(kmp.find("pattern", "pattern"), 0);
 }
 
-TEST(PatternMatcherTest, CaseSensitiveSearch)
+TEST(PatternMatcherTest, CaseInsensitiveSearch)
 {
     PatternMatcher kmp;
 
-    EXPECT_EQ(kmp.find("Google", "google"), -1);
+    EXPECT_EQ(kmp.find("Google", "google"), 0);
+    EXPECT_EQ(kmp.find("GOOGLE", "gOoGlE"), 0);
+}
+
+TEST(PatternMatcherTest, CaseSensitiveSearchCS)
+{
+    PatternMatcher kmp;
+
+    EXPECT_EQ(kmp.findcs("Google", "google"), -1);
+    EXPECT_EQ(kmp.findcs("Google", "Google"), 0);
 }
 
 TEST(PatternMatcherTest, SearchWithSpaces)
@@ -162,5 +171,42 @@ TEST(PatternMatcherTest, ContainsEmptyPattern)
     PatternMatcher kmp;
 
     EXPECT_TRUE(kmp.contains("abcdef", ""));
+}
+
+TEST(PatternMatcherTest, ContainsCaseInsensitive)
+{
+    PatternMatcher kmp;
+
+    EXPECT_TRUE(kmp.contains("Google", "google"));
+    EXPECT_TRUE(kmp.contains("GOOGLE", "gOoGlE"));
+}
+
+TEST(PatternMatcherTest, ContainsCaseSensitiveCS)
+{
+    PatternMatcher kmp;
+
+    EXPECT_FALSE(kmp.containscs("Google", "google"));
+    EXPECT_TRUE(kmp.containscs("Google", "Google"));
+}
+
+// findall and findallcs
+
+TEST(PatternMatcherTest, FindAllCaseInsensitive)
+{
+    PatternMatcher kmp;
+    DynamicArray<int> result = kmp.findall("abcABCabc", "abc");
+    ASSERT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0], 0);
+    EXPECT_EQ(result[1], 3);
+    EXPECT_EQ(result[2], 6);
+}
+
+TEST(PatternMatcherTest, FindAllCaseSensitiveCS)
+{
+    PatternMatcher kmp;
+    DynamicArray<int> result = kmp.findallcs("abcABCabc", "abc");
+    ASSERT_EQ(result.size(), 2);
+    EXPECT_EQ(result[0], 0);
+    EXPECT_EQ(result[1], 6);
 }
 
