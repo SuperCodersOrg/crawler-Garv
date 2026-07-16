@@ -45,6 +45,13 @@ DynamicArray<std::string> HTMLParser::extractlinks(std::string_view html)const{
         std::string url = extractattributes(html,positions[i],attribute);
         if(!url.empty())links.append(url);
     }
+
+    std::string redirectUrl = extractMetaRedirect(html);
+    if(!redirectUrl.empty())
+    {
+        links.append(redirectUrl);
+    }
+
     return links;
 }
 
@@ -66,4 +73,54 @@ std::string HTMLParser::trim(std::string_view str) const
         end--;
     }
     return std::string(str.substr(start, end - start));
+}
+
+std::string HTMLParser::extractMetaRedirect(std::string_view html) const
+{
+    size_t pos = 0;
+    while (pos < html.length())
+    {
+        int offset = matcher.find(html.substr(pos), "http-equiv");
+        if (offset == -1) break;
+        
+        size_t absolutePos = pos + offset;
+        std::string eqVal = extractattributes(html, absolutePos, "http-equiv");
+        std::string eqValLower = eqVal;
+        for (char& c : eqValLower) c = std::tolower(static_cast<unsigned char>(c));
+        
+        if (eqValLower == "refresh")
+        {
+            size_t tagStart = html.rfind('<', absolutePos);
+            size_t tagEnd = html.find('>', absolutePos);
+            if (tagStart != std::string_view::npos && tagEnd != std::string_view::npos && tagStart < absolutePos)
+            {
+                std::string_view tagContent = html.substr(tagStart, tagEnd - tagStart + 1);
+                int contentOffset = matcher.find(tagContent, "content");
+                if (contentOffset != -1)
+                {
+                    std::string contentVal = extractattributes(html, tagStart + contentOffset, "content");
+                    int urlOffset = matcher.find(contentVal, "url=");
+                    if (urlOffset != -1)
+                    {
+                        std::string targetUrl = contentVal.substr(urlOffset + 4);
+                        while (!targetUrl.empty() && std::isspace(static_cast<unsigned char>(targetUrl.front())))
+                            targetUrl.erase(0, 1);
+                        while (!targetUrl.empty() && std::isspace(static_cast<unsigned char>(targetUrl.back())))
+                            targetUrl.pop_back();
+                        if (!targetUrl.empty() && (targetUrl.front() == '\'' || targetUrl.front() == '"'))
+                        {
+                            char q = targetUrl.front();
+                            if (targetUrl.back() == q)
+                            {
+                                targetUrl = targetUrl.substr(1, targetUrl.size() - 2);
+                            }
+                        }
+                        return targetUrl;
+                    }
+                }
+            }
+        }
+        pos = absolutePos + 10;
+    }
+    return "";
 }

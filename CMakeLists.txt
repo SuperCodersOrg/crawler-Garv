@@ -15,6 +15,8 @@ find_library(MARIADB_LIBRARY
     NAMES mariadb
     PATHS C:/msys64/ucrt64/lib
 )
+
+
 # Data Structures
 set(DS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(external/DataStructures)

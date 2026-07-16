@@ -52,7 +52,7 @@ Crawler::Crawler(const ConfigLoader& config)
     std::string resume_mode = config.getString("resume_mode", "");
     if(resume_mode.empty())
     {
-        resume_mode=="keep";
+        resume_mode="keep";
         std::cout << "Starting fresh crawl: keeping previous database records...\n";
     }
 

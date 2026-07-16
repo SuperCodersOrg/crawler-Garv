@@ -1,9 +1,15 @@
 #include "crawler/Crawler.h"
 #include "config/ConfigLoader.h"
 #include <iostream>
+#ifdef _WIN32
+#include <crtdbg.h>
+#endif
 
 int main()
 {
+#ifdef _WIN32
+    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif 
     ConfigLoader config;
     if (!config.load("config/crawler.conf"))
     {

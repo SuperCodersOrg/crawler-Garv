@@ -35,6 +35,9 @@ std::string ChromeProcess::buildCommand(bool headless) const
         command += "--disable-gpu ";
         command += "--window-position=-2400,-2400 ";
     }
+    command += "--ignore-certificate-errors ";
+    command += "--allow-running-insecure-content ";
+    command += "--disable-web-security ";
     command += "--no-first-run ";
     command += "--no-default-browser-check ";
     command += "--disable-extensions ";

@@ -36,20 +36,7 @@ void PageFetcher::initialize(const ConfigLoader& config)
 
 bool PageFetcher::needsRendering(const Page& page)
 {
-    // HTTP failed
-    if(page.statusCode != 200)return false;
-
-    // No HTML
-    if(page.html.empty())return true;
-
-    // Very small page
-    if(static_cast<int>(page.html.size()) < renderMinSize_)return true;
-
-     // These won't be fixed by rendering.
     if(page.statusCode == 401)
-        return false;
-
-    if(page.statusCode == 403)
         return false;
 
     if(page.statusCode == 404)
@@ -58,7 +45,10 @@ bool PageFetcher::needsRendering(const Page& page)
     if(page.statusCode >= 500)
         return false;
 
-    // JS shell
+    if(page.html.empty())return true;
+
+    if(static_cast<int>(page.html.size()) < renderMinSize_)return true;
+
     if(page.html.find("id=\"root\"") != std::string::npos)return true;
 
     if(page.html.find("id=\"app\"") != std::string::npos)return true;

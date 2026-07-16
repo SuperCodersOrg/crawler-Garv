@@ -83,9 +83,26 @@ std::string BrowserRenderer::render(const std::string& url)
         if(!start())return "";
     }
 
-    if(!cdp_.navigate(url))return "";
-    cdp_.waitForLoad(loadTimeoutMs_);
-    return cdp_.getHTML();
+    try
+    {
+        if(!cdp_.navigate(url))
+        {
+            stop();
+            return "";
+        }
+        cdp_.waitForLoad(loadTimeoutMs_);
+        std::string html = cdp_.getHTML();
+        if(html.empty())
+        {
+            stop();
+        }
+        return html;
+    }
+    catch (...)
+    {
+        stop();
+        return "";
+    }
 }
 
 void BrowserRenderer::configure(int connectRetries, int connectDelayMs, int loadTimeoutMs)

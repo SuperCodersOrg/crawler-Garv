@@ -125,3 +125,33 @@ TEST(HTMLParserTest, NoHrefAttribute)
 
     EXPECT_TRUE(links.isEmpty());
 }
+
+TEST(HTMLParserTest, MetaRefreshRedirect)
+{
+    HTMLParser parser;
+    DynamicArray<std::string> links =
+        parser.extractlinks(R"(
+            <html>
+                <head>
+                    <meta http-equiv="refresh" content="0; url=https://www.irctc.co.in/nget/">
+                </head>
+                <body>
+                    <a href="normal.html">Regular Link</a>
+                </body>
+            </html>
+        )");
+
+    ASSERT_EQ(links.size(), 2);
+    EXPECT_EQ(links[0], "normal.html");
+    EXPECT_EQ(links[1], "https://www.irctc.co.in/nget/");
+}
+
+TEST(HTMLParserTest, MetaRefreshCaseInsensitive)
+{
+    HTMLParser parser;
+    DynamicArray<std::string> links =
+        parser.extractlinks(R"(<meta HTTP-EQUIV="Refresh" content="0;URL='https://redirect.com'">)");
+
+    ASSERT_EQ(links.size(), 1);
+    EXPECT_EQ(links[0], "https://redirect.com");
+}
