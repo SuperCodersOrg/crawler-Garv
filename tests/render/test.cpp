@@ -52,7 +52,7 @@ TEST(CDPConnectionTest, MultipleWebsiteNavigation)
     for (const auto& site : websites)
     {
         ASSERT_TRUE(cdp.navigate(site.url));
-        ASSERT_TRUE(cdp.waitForLoad());
+        ASSERT_TRUE(cdp.waitForLoad(20000));
         std::string html = cdp.getHTML();
         EXPECT_FALSE(html.empty());
         EXPECT_NE(html.find(site.expectedText),std::string::npos)<< "Expected text not found for "<< site.url;
