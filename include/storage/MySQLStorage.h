@@ -21,8 +21,6 @@ public:
     bool urlExists(const std::string& url);
     bool loadURLs(DynamicArray<std::string>& urls, DynamicArray<int>& depths, DynamicArray<URLState>& states);
     bool clearStorage();
-
-    // Direct access to MYSQL connection for helper engines
     MYSQL* getConnection() const { return connection_; }
 protected:
     MYSQL* connection_;
